@@ -5,6 +5,7 @@
 import type { AxiosInstance } from 'axios';
 import type { VybeToken, VybeWalletTokenBalanceResponse } from '../types/api.js';
 import { withRetry } from './client.js';
+import { getToken } from './tokens.js';
 import { toVybeSwapMint } from './sol-mints.js';
 import { fetchJupiterAsset, fetchJupiterQuotePrice } from './jupiter-token-fallback.js';
 import { resolveTokenMeta } from './resolve-token-meta.js';
@@ -12,14 +13,21 @@ import { fetchRpcWalletBalances, RPC_NATIVE_SOL_MINT } from './wallet-rpc-balanc
 import type { RpcMintBalance } from './wallet-rpc-balance.js';
 import { WALLET_TOKEN_BALANCE_LIMIT } from '../wallet-balance-limit.js';
 import { isMintLikeLabel } from './token-label.js';
-import { getCachedTokenMetaFromDisk } from '../token-icon-cache.js';
+import { getCachedTokenMetaFromDisk, cacheTokenMetaFromVybe } from '../token-icon-cache.js';
 
 export { WALLET_TOKEN_BALANCE_LIMIT };
 
 const NATIVE_SOL_MINT = '11111111111111111111111111111111';
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 
+function isPumpFunMint(mint: string): boolean {
+  return mint.trim().toLowerCase().endsWith('pump');
+}
+
 export { NATIVE_SOL_MINT, WSOL_MINT };
+
+/** Top holdings by USD value queued for logo backfill on the client. */
+export const TOP_LOGO_REPAIR_N = 20;
 
 export const RPC_ONLY_ENRICH_LIMIT = WALLET_TOKEN_BALANCE_LIMIT;
 
@@ -42,6 +50,18 @@ export interface WalletBalanceListItem {
   verified: boolean;
   priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API';
   enrichmentPending?: boolean;
+  priceUsd?: number;
+  price1d?: number;
+  price7d?: number;
+  priceChange1dPct?: number;
+  priceChange7dPct?: number;
+  category?: string | null;
+  subcategory?: string | null;
+  currentSupply?: number;
+  marketCap?: number;
+  tokenAmountVolume24h?: number;
+  usdValueVolume24h?: number;
+  updateTime?: number;
 }
 
 export type WalletBalanceStreamEvent =
@@ -181,7 +201,7 @@ async function enrichRpcOnlyFromJupiter(
     if (asset) {
       if (asset.symbol) state.symbol = asset.symbol;
       if (asset.name) state.name = asset.name;
-      if (asset.logoUrl) state.logoUrl = asset.logoUrl;
+      if (asset.logoUrl && !isPumpFunMint(displayMint)) state.logoUrl = asset.logoUrl;
       if (asset.verified) state.verified = asset.verified;
       if (asset.decimals != null) state.decimals = asset.decimals;
     }
@@ -210,6 +230,166 @@ function attachPriceSource(item: WalletBalanceListItem): WalletBalanceListItem {
   if (disk?.priceSource) return { ...item, priceSource: disk.priceSource };
   if (item.valueUsd > 0) return { ...item, priceSource: 'Vybe' };
   return item;
+}
+
+function priceChangePct(current?: number, past?: number): number | undefined {
+  if (
+    typeof current !== 'number' ||
+    typeof past !== 'number' ||
+    !Number.isFinite(current) ||
+    !Number.isFinite(past) ||
+    past <= 0
+  ) {
+    return undefined;
+  }
+  return ((current - past) / past) * 100;
+}
+
+function vybeFieldsFromMeta(meta: {
+  price?: number;
+  price1d?: number;
+  price7d?: number;
+  priceUpdateTime?: number;
+  isVerified?: boolean;
+  category?: string;
+  subcategory?: string;
+  currentSupply?: number;
+  marketCapUsd?: number;
+  tokenAmountVolume24h?: number;
+  usdValueVolume24h?: number;
+}): Partial<WalletBalanceListItem> {
+  const priceUsd = typeof meta.price === 'number' ? meta.price : undefined;
+  const price1d = typeof meta.price1d === 'number' ? meta.price1d : undefined;
+  const price7d = typeof meta.price7d === 'number' ? meta.price7d : undefined;
+  return {
+    priceUsd,
+    price1d,
+    price7d,
+    priceChange1dPct: priceChangePct(priceUsd, price1d),
+    priceChange7dPct: priceChangePct(priceUsd, price7d),
+    category: meta.category?.trim() || null,
+    subcategory: meta.subcategory?.trim() || null,
+    currentSupply:
+      typeof meta.currentSupply === 'number' && Number.isFinite(meta.currentSupply)
+        ? meta.currentSupply
+        : undefined,
+    marketCap:
+      typeof meta.marketCapUsd === 'number' && Number.isFinite(meta.marketCapUsd)
+        ? meta.marketCapUsd
+        : undefined,
+    tokenAmountVolume24h:
+      typeof meta.tokenAmountVolume24h === 'number' && Number.isFinite(meta.tokenAmountVolume24h)
+        ? meta.tokenAmountVolume24h
+        : undefined,
+    usdValueVolume24h:
+      typeof meta.usdValueVolume24h === 'number' && Number.isFinite(meta.usdValueVolume24h)
+        ? meta.usdValueVolume24h
+        : undefined,
+    updateTime:
+      typeof meta.priceUpdateTime === 'number' && Number.isFinite(meta.priceUpdateTime)
+        ? meta.priceUpdateTime
+        : undefined,
+    verified: meta.isVerified === true,
+  };
+}
+
+function vybeFieldsFromToken(token: VybeToken): Partial<WalletBalanceListItem> {
+  const priceUsd = typeof token.price === 'number' ? token.price : undefined;
+  const price1d = typeof token.price1d === 'number' ? token.price1d : undefined;
+  const price7d = typeof token.price7d === 'number' ? token.price7d : undefined;
+  return {
+    priceUsd,
+    price1d,
+    price7d,
+    priceChange1dPct: priceChangePct(priceUsd, price1d),
+    priceChange7dPct: priceChangePct(priceUsd, price7d),
+    category: typeof token.category === 'string' ? token.category.trim() || null : null,
+    subcategory: typeof token.subcategory === 'string' ? token.subcategory.trim() || null : null,
+    currentSupply:
+      typeof token.currentSupply === 'number' && Number.isFinite(token.currentSupply)
+        ? token.currentSupply
+        : undefined,
+    marketCap:
+      typeof token.marketCap === 'number' && Number.isFinite(token.marketCap)
+        ? token.marketCap
+        : undefined,
+    tokenAmountVolume24h:
+      typeof token.tokenAmountVolume24h === 'number' && Number.isFinite(token.tokenAmountVolume24h)
+        ? token.tokenAmountVolume24h
+        : undefined,
+    usdValueVolume24h:
+      typeof token.usdValueVolume24h === 'number' && Number.isFinite(token.usdValueVolume24h)
+        ? token.usdValueVolume24h
+        : undefined,
+    updateTime:
+      typeof token.updateTime === 'number' && Number.isFinite(token.updateTime)
+        ? token.updateTime
+        : undefined,
+    verified: token.verified === true,
+  };
+}
+
+function mergeVybeFields(
+  item: WalletBalanceListItem,
+  fields: Partial<WalletBalanceListItem>,
+): WalletBalanceListItem {
+  return {
+    ...item,
+    ...fields,
+    verified: fields.verified === true || item.verified,
+    category: fields.category ?? item.category ?? null,
+    subcategory: fields.subcategory ?? item.subcategory ?? null,
+  };
+}
+
+function metaHasVybeTaxonomy(meta: ReturnType<typeof getCachedTokenMetaFromDisk>): boolean {
+  if (!meta) return false;
+  return Boolean(
+    meta.category?.trim() ||
+      meta.subcategory?.trim() ||
+      (typeof meta.price1d === 'number' && Number.isFinite(meta.price1d)),
+  );
+}
+
+async function attachVybeTokenDetails(
+  http: AxiosInstance,
+  item: WalletBalanceListItem,
+): Promise<WalletBalanceListItem> {
+  const disk = getCachedTokenMetaFromDisk(item.mintAddress);
+  if (metaHasVybeTaxonomy(disk)) {
+    return mergeVybeFields(item, vybeFieldsFromMeta(disk!));
+  }
+
+  try {
+    const token = await getToken(http, item.mintAddress);
+    await cacheTokenMetaFromVybe(item.mintAddress, {
+      ...token,
+      decimals:
+        typeof token.decimal === 'number'
+          ? token.decimal
+          : typeof token.decimals === 'number'
+            ? token.decimals
+            : item.decimals,
+      priceUpdateTime: token.updateTime,
+      priceSource: 'Vybe',
+    });
+    const refreshed = getCachedTokenMetaFromDisk(item.mintAddress);
+    if (refreshed) return mergeVybeFields(item, vybeFieldsFromMeta(refreshed));
+    return mergeVybeFields(item, vybeFieldsFromToken(token));
+  } catch {
+    if (disk) return mergeVybeFields(item, vybeFieldsFromMeta(disk));
+    return item;
+  }
+}
+
+async function enrichWalletItemFull(
+  http: AxiosInstance,
+  item: WalletBalanceListItem,
+): Promise<WalletBalanceListItem> {
+  const metaEnriched = needsEnrichment(item)
+    ? await enrichWalletItemMeta(http, item)
+    : attachPriceSource(item);
+  return attachVybeTokenDetails(http, metaEnriched);
 }
 
 async function enrichWalletItemMeta(
@@ -479,10 +659,11 @@ export async function streamWalletTokenBalances(
   emit({ event: 'initial', tokens: items });
 
   if (enrich) {
+    const enrichedItems: WalletBalanceListItem[] = [];
     for (const item of items) {
       if (isCancelled?.()) return;
-      if (!needsEnrichment(item)) continue;
-      const enriched = await enrichWalletItemMeta(http, item);
+      const enriched = await enrichWalletItemFull(http, item);
+      enrichedItems.push(enriched);
       if (isCancelled?.()) return;
       emit({ event: 'update', token: enriched });
     }
@@ -504,11 +685,7 @@ export async function listWalletTokenBalances(
 
   const out: WalletBalanceListItem[] = [];
   for (const item of sliced) {
-    if (needsEnrichment(item)) {
-      out.push(attachPriceSource(await enrichWalletItemMeta(http, item)));
-    } else {
-      out.push(attachPriceSource(item));
-    }
+    out.push(await enrichWalletItemFull(http, item));
   }
   return sortWalletBalanceItems(out);
 }

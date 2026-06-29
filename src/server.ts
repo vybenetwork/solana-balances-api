@@ -19,6 +19,7 @@ import {
   WALLET_TOKEN_BALANCE_LIMIT,
 } from './api/wallet-balance.js';
 import { resolveTokenMeta } from './api/resolve-token-meta.js';
+import { repairTokenIcon } from './api/repair-token-icon.js';
 import { cachedMetaToApiResponse } from './api/token-meta-api.js';
 import { warmupHttpProxyPool } from './api/http-proxy-fetch.js';
 import { getRuntimeIconDir } from './token-icon-cache.js';
@@ -110,6 +111,23 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
 
     const tokens = await listWalletTokenBalances(dataHttp, ownerAddress, limit, { enrich });
     res.json({ tokens });
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
+    res.status(status).json({ error: toHumanReadableError(err) });
+  }
+});
+
+/** GET /api/token/:mint/logo — Jupiter (non-pump) or pump.fun metadata; caches locally. */
+app.get('/api/token/:mint/logo', async (req: Request, res: Response) => {
+  try {
+    const rawMint = req.params.mint;
+    const mint = (Array.isArray(rawMint) ? rawMint[0] : rawMint ?? '').trim();
+    if (!mint) return res.status(400).json({ error: 'Mint address required' });
+
+    const force = qBool(req, 'force', false);
+    const logoUrl = await repairTokenIcon(mint, { force });
+    if (!logoUrl) return res.status(404).json({ error: `No logo found for mint ${mint}` });
+    res.json({ logoUrl });
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
     res.status(status).json({ error: toHumanReadableError(err) });

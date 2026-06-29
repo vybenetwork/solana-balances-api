@@ -27,6 +27,12 @@ const errorSection = document.getElementById('errorSection');
 const errorText = document.getElementById('errorText');
 
 let lastTokens = [];
+const TOP_LOGO_REPAIR_N = 20;
+const logoLoadingMints = new Set();
+const logoRepairInFlight = new Set();
+const logoFailedMints = new Set();
+const logoPendingRepairMints = new Set();
+const logoImageLoadedMints = new Set();
 
 function escapeHtmlText(s) {
   return String(s)
@@ -69,6 +75,31 @@ function formatUsd(n) {
   return `$${Math.round(num).toLocaleString()}`;
 }
 
+/** USD display: full below 100k, compact K/M/B/T with max 2 decimals above. */
+function formatUsdCompact(n) {
+  const num = toNum(n);
+  if (!Number.isFinite(num)) return '—';
+  if (num === 0) return '$0';
+  const abs = Math.abs(num);
+  if (abs < 100000) return formatUsd(num);
+  const trimCompact = (value) => value.toFixed(2).replace(/\.?0+$/, '');
+  if (abs >= 1e12) return `$${trimCompact(num / 1e12)}T`;
+  if (abs >= 1e9) return `$${trimCompact(num / 1e9)}B`;
+  if (abs >= 1e6) return `$${trimCompact(num / 1e6)}M`;
+  return `$${trimCompact(num / 1e3)}K`;
+}
+
+/** Holdings table Value (USD): max 2 decimals; tiny positive values show &lt; $0.01. */
+function formatHoldingUsdValue(n) {
+  const num = toNum(n);
+  if (!Number.isFinite(num) || num <= 0) return '—';
+  if (num < 0.01) return '< $0.01';
+  const abs = Math.abs(num);
+  if (abs >= 100000) return formatUsdCompact(num);
+  const trimmed = num.toFixed(2).replace(/\.?0+$/, '');
+  return `$${trimmed}`;
+}
+
 function formatAmount(n, symbol) {
   const num = toNum(n);
   const sym = symbol?.trim() ? ` ${symbol.trim()}` : '';
@@ -80,11 +111,206 @@ function formatAmount(n, symbol) {
   return `0${sym}`;
 }
 
+function formatCompactNum(n) {
+  const num = toNum(n);
+  if (!Number.isFinite(num) || num === 0) return '0';
+  if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+  if (num >= 1) return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return num.toPrecision(4);
+}
+
+function formatPriceUsdSpot(n) {
+  const num = toNum(n);
+  if (!Number.isFinite(num) || num <= 0) return '—';
+  if (num >= 1) return `$${num.toLocaleString(undefined, { maximumFractionDigits: 6 })}`;
+  return `$${num.toPrecision(4)}`;
+}
+
+function formatPriceChangePctHtml(pct) {
+  if (pct == null || !Number.isFinite(Number(pct))) return '—';
+  const num = Number(pct);
+  const toneClass =
+    num > 0 ? 'usd-tone usd-tone--positive' : num < 0 ? 'usd-tone usd-tone--negative' : 'usd-tone usd-tone--neutral';
+  const sign = num > 0 ? '+' : '';
+  return `<span class="token-stat-price-pct ${toneClass}">${sign}${formatPctSmart(num)}</span>`;
+}
+
+function formatPriceChangeLineHtml(label, pct) {
+  return `<div class="holders-price-change-line"><span class="holders-price-change-label">${escapeHtmlText(label)}</span> ${formatPriceChangePctHtml(pct)}</div>`;
+}
+
+function formatPriceColumnHtml(t) {
+  const spot = formatPriceUsdSpot(t.priceUsd);
+  if (spot === '—') return '—';
+  return `<div class="holders-price-cell"><div class="holders-price-spot">${escapeHtmlText(spot)}</div>${formatPriceChangeLineHtml('1 Day', t.priceChange1dPct)}${formatPriceChangeLineHtml('7 Days', t.priceChange7dPct)}</div>`;
+}
+
+function formatCategoryColumnHtml(category, subcategory) {
+  const cat = (category || '').trim();
+  const sub = (subcategory || '').trim();
+  if (!cat && !sub) return '—';
+  if (!cat) return escapeHtmlText(sub);
+  if (!sub) return escapeHtmlText(cat);
+  return `<div class="holders-category-cell"><div>${escapeHtmlText(cat)}</div><div class="holders-category-sub meta">(${escapeHtmlText(sub)})</div></div>`;
+}
+
+function aggregateWalletTaxonomy(tokens) {
+  const categories = new Map();
+  const subcategories = new Map();
+  let labeledCount = 0;
+  for (const t of tokens) {
+    const cat = (t.category || '').trim();
+    const sub = (t.subcategory || '').trim();
+    const v = toNum(t.valueUsd);
+    if (cat) {
+      labeledCount += 1;
+      const cur = categories.get(cat) ?? { count: 0, usd: 0 };
+      cur.count += 1;
+      cur.usd += v;
+      categories.set(cat, cur);
+    }
+    if (sub) {
+      const cur = subcategories.get(sub) ?? { count: 0, usd: 0 };
+      cur.count += 1;
+      cur.usd += v;
+      subcategories.set(sub, cur);
+    }
+  }
+  const topEntry = (map) => {
+    const sorted = [...map.entries()].sort((a, b) => b[1].usd - a[1].usd || b[1].count - a[1].count);
+    return sorted[0];
+  };
+  const topCat = topEntry(categories);
+  const topSub = topEntry(subcategories);
+  return {
+    uniqueCategories: categories.size,
+    uniqueSubcategories: subcategories.size,
+    labeledCount,
+    topCategoryLine: topCat
+      ? `${topCat[0]} · ${topCat[1].count} token(s) · ${formatUsd(topCat[1].usd)}`
+      : '—',
+    topSubcategoryLine: topSub
+      ? `${topSub[0]} · ${topSub[1].count} token(s) · ${formatUsd(topSub[1].usd)}`
+      : '—',
+  };
+}
+
 function iconUrl(item) {
   const u = item.logoUrl?.trim();
   if (!u) return '';
   if (u.startsWith('http') || u.startsWith('/')) return u;
   return `/${u.replace(/^\//, '')}`;
+}
+
+function isTopLogoRepairCandidate(mint) {
+  const sorted = [...lastTokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
+  return sorted.slice(0, TOP_LOGO_REPAIR_N).some((t) => t.mintAddress === mint);
+}
+
+function handleTokenIconLoad(mint, imgEl) {
+  logoImageLoadedMints.add(mint);
+  if (imgEl) {
+    imgEl.classList.remove('token-logo--img-loading');
+    imgEl.style.opacity = '1';
+  }
+  const slot = imgEl?.closest('.token-logo-slot');
+  const spinner = slot?.querySelector('.token-logo--loading');
+  if (spinner) spinner.remove();
+}
+
+function handleTokenIconError(mint, imgEl) {
+  logoImageLoadedMints.delete(mint);
+  if (imgEl) {
+    imgEl.classList.add('token-logo--img-loading');
+    imgEl.style.opacity = '0';
+  }
+  if (!isTopLogoRepairCandidate(mint)) return;
+  if (logoFailedMints.has(mint) || logoRepairInFlight.has(mint)) return;
+  logoFailedMints.add(mint);
+  repairTokenLogo(mint, { force: true });
+}
+
+function tokenLogoSpinnerHtml() {
+  return `<span class="token-logo token-logo--loading" aria-hidden="true"><span class="loading-spinner"></span></span>`;
+}
+
+function tokenIconShowsSpinner(t) {
+  const mint = t.mintAddress;
+  if (logoLoadingMints.has(mint) || logoPendingRepairMints.has(mint)) return true;
+  const icon = iconUrl(t);
+  if (!icon) return false;
+  return !logoImageLoadedMints.has(mint);
+}
+
+function tokenIconHtml(t) {
+  const mint = t.mintAddress;
+  const icon = iconUrl(t);
+  const mintAttr = escapeHtmlAttr(mint);
+  const showSpinner = tokenIconShowsSpinner(t);
+
+  if (!icon && !showSpinner) return '';
+
+  let inner = '';
+  if (showSpinner) inner += tokenLogoSpinnerHtml();
+  if (icon) {
+    const loaded = logoImageLoadedMints.has(mint);
+    inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" src="${escapeHtmlAttr(icon)}" alt="" loading="lazy" style="${loaded ? '' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
+  }
+  return `<span class="token-logo-slot">${inner}</span>`;
+}
+
+function updateTableAfterLogoChange() {
+  const totalUsd = lastTokens.reduce((s, row) => s + toNum(row.valueUsd), 0);
+  renderTable(lastTokens, totalUsd);
+}
+
+async function fetchRepairedLogo(mint, force) {
+  const url = `/api/token/${encodeURIComponent(mint)}/logo?force=${force ? '1' : '0'}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const logo = data.logoUrl?.trim();
+  return logo || null;
+}
+
+async function repairTokenLogo(mint, options = {}) {
+  if (logoRepairInFlight.has(mint)) return;
+  logoRepairInFlight.add(mint);
+  logoLoadingMints.add(mint);
+  updateTableAfterLogoChange();
+  try {
+    const logo = await fetchRepairedLogo(mint, options.force === true);
+    if (!logo) return;
+    const idx = lastTokens.findIndex((row) => row.mintAddress === mint);
+    if (idx < 0) return;
+    if (lastTokens[idx].logoUrl?.trim() === logo) return;
+    lastTokens[idx] = { ...lastTokens[idx], logoUrl: logo };
+    logoImageLoadedMints.delete(mint);
+  } catch {
+    /* ignore per-token logo failures */
+  } finally {
+    logoLoadingMints.delete(mint);
+    logoPendingRepairMints.delete(mint);
+    logoRepairInFlight.delete(mint);
+    updateTableAfterLogoChange();
+  }
+}
+
+function queueTopLogoRepairs(tokens) {
+  const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
+  const candidates = sorted
+    .slice(0, TOP_LOGO_REPAIR_N)
+    .filter((item) => !item.logoUrl?.trim());
+  for (const item of candidates) {
+    logoPendingRepairMints.add(item.mintAddress);
+  }
+  if (candidates.length > 0) updateTableAfterLogoChange();
+  for (const item of candidates) {
+    repairTokenLogo(item.mintAddress);
+  }
 }
 
 function setSupplyLegendGrid(el, sliceCount) {
@@ -200,9 +426,25 @@ function buildWalletSummarySections(data) {
         label: 'Wallet',
         valueHtml: `<span class="mono">${escapeHtmlText(data.wallet)}</span>`,
       },
-      { key: 'category', label: 'Tokens loaded', valueHtml: data.tokensCount == null ? escapeHtmlText('—') : escapeHtmlText(String(data.tokensCount)) },
-      { key: 'verified', label: 'Verified tokens', valueHtml: data.verified == null ? escapeHtmlText('—') : escapeHtmlText(String(data.verified)) },
-      { key: 'decimals', label: 'With USD price', valueHtml: data.priced == null ? escapeHtmlText('—') : escapeHtmlText(String(data.priced)) },
+      {
+        key: 'category',
+        label: 'Tokens loaded',
+        valueHtml:
+          data.tokensCount == null ? escapeHtmlText('—') : escapeHtmlText(String(data.tokensCount)),
+      },
+      {
+        key: 'verified',
+        label: 'Verified tokens',
+        valueHtml:
+          data.verified == null
+            ? escapeHtmlText('—')
+            : escapeHtmlText(`${data.verified} verified · ${data.unverified ?? 0} unverified`),
+      },
+      {
+        key: 'decimals',
+        label: 'With USD price',
+        valueHtml: data.priced == null ? escapeHtmlText('—') : escapeHtmlText(String(data.priced)),
+      },
     ],
   };
   const portfolio = {
@@ -213,21 +455,52 @@ function buildWalletSummarySections(data) {
       { key: 'priceUsd', label: 'Est. total USD', valueHtml: walletStatUsdHtml(data.totalUsd) },
       { key: 'marketCap', label: 'Verified USD', valueHtml: walletStatUsdHtml(data.verifiedUsd) },
       { key: 'price1d', label: 'Unverified USD', valueHtml: walletStatUsdHtml(data.unverifiedUsd) },
-      { key: 'price7d', label: 'Unpriced rows', valueHtml: data.unpricedCount == null ? escapeHtmlText('—') : escapeHtmlText(String(data.unpricedCount)) },
+      {
+        key: 'price7d',
+        label: 'Unpriced rows',
+        valueHtml:
+          data.unpricedCount == null ? escapeHtmlText('—') : escapeHtmlText(String(data.unpricedCount)),
+      },
     ],
   };
-  const holdings = {
+  const taxonomy = {
     icon: WALLET_SECTION_ICONS.holdings,
-    title: 'SOL & Top Holding',
+    title: 'Categories & Labels',
     theme: 'supply',
     rows: [
-      { key: 'supply', label: 'Native SOL', valueHtml: data.solAmount == null ? escapeHtmlText('—') : escapeHtmlText(data.solAmount) },
-      { key: 'tokenVol24h', label: 'SOL USD', valueHtml: walletStatUsdHtml(data.solUsd) },
-      { key: 'usdVol24h', label: 'pump.fun mints', valueHtml: data.pumpMints == null ? escapeHtmlText('—') : escapeHtmlText(String(data.pumpMints)) },
-      { key: 'topPnlCohortVol', label: 'Top holding', valueHtml: data.topLine == null ? escapeHtmlText('—') : escapeHtmlText(data.topLine) },
+      {
+        key: 'supply',
+        label: 'Unique categories',
+        valueHtml:
+          data.uniqueCategories == null
+            ? escapeHtmlText('—')
+            : escapeHtmlText(String(data.uniqueCategories)),
+      },
+      {
+        key: 'tokenVol24h',
+        label: 'Top category',
+        valueHtml:
+          data.topCategoryLine == null ? escapeHtmlText('—') : escapeHtmlText(data.topCategoryLine),
+      },
+      {
+        key: 'usdVol24h',
+        label: 'Unique subcategories',
+        valueHtml:
+          data.uniqueSubcategories == null
+            ? escapeHtmlText('—')
+            : escapeHtmlText(String(data.uniqueSubcategories)),
+      },
+      {
+        key: 'topPnlCohortVol',
+        label: 'Top subcategory',
+        valueHtml:
+          data.topSubcategoryLine == null
+            ? escapeHtmlText('—')
+            : escapeHtmlText(data.topSubcategoryLine),
+      },
     ],
   };
-  return `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${walletStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${walletStatSectionHtml(portfolio)}${walletStatSectionHtml(holdings)}</div></div></div>`;
+  return `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${walletStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${walletStatSectionHtml(portfolio)}${walletStatSectionHtml(taxonomy)}</div></div></div>`;
 }
 
 function buildWalletSummaryPlaceholderHtml() {
@@ -236,14 +509,15 @@ function buildWalletSummaryPlaceholderHtml() {
     tokensCount: null,
     priced: null,
     verified: null,
+    unverified: null,
     totalUsd: null,
     verifiedUsd: null,
     unverifiedUsd: null,
     unpricedCount: null,
-    solAmount: null,
-    solUsd: null,
-    pumpMints: null,
-    topLine: null,
+    uniqueCategories: null,
+    uniqueSubcategories: null,
+    topCategoryLine: null,
+    topSubcategoryLine: null,
   });
 }
 
@@ -385,9 +659,9 @@ function renderCharts(tokens, wallet, totalUsd) {
 function renderSummaryStats(tokens, wallet, totalUsd) {
   const priced = tokens.filter((t) => toNum(t.valueUsd) > 0).length;
   const verified = tokens.filter((t) => t.verified).length;
+  const unverified = tokens.length - verified;
   const unpricedCount = tokens.filter((t) => toNum(t.valueUsd) <= 0).length;
-  const pumpMints = tokens.filter((t) => t.mintAddress.endsWith('pump')).length;
-  const sol = tokens.find((t) => t.symbol === 'SOL' || t.mintAddress === '11111111111111111111111111111111');
+  const taxonomy = aggregateWalletTaxonomy(tokens);
 
   let verifiedUsd = 0;
   let unverifiedUsd = 0;
@@ -398,11 +672,6 @@ function renderSummaryStats(tokens, wallet, totalUsd) {
     else unverifiedUsd += v;
   }
 
-  const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
-  const top = sorted[0];
-  const topLine =
-    top && toNum(top.valueUsd) > 0 ? `${top.symbol} · ${formatUsd(top.valueUsd)}` : '—';
-
   walletSummaryLabel.textContent = truncateAddress(wallet);
   walletSummarySub.textContent = wallet;
   walletLastUpdatedValue.textContent = formatWalletUpdateTime();
@@ -411,14 +680,15 @@ function renderSummaryStats(tokens, wallet, totalUsd) {
     tokensCount: tokens.length,
     priced,
     verified,
+    unverified,
     totalUsd,
     verifiedUsd,
     unverifiedUsd,
     unpricedCount,
-    solAmount: sol ? formatAmount(sol.amountUi, 'SOL') : '—',
-    solUsd: sol ? toNum(sol.valueUsd) : 0,
-    pumpMints,
-    topLine,
+    uniqueCategories: taxonomy.uniqueCategories,
+    uniqueSubcategories: taxonomy.uniqueSubcategories,
+    topCategoryLine: taxonomy.topCategoryLine,
+    topSubcategoryLine: taxonomy.topSubcategoryLine,
   });
 }
 
@@ -428,17 +698,21 @@ function renderTable(tokens, totalUsd) {
     .map((t, i) => {
       const v = toNum(t.valueUsd);
       const pct = totalUsd > 0 && v > 0 ? (v / totalUsd) * 100 : 0;
-      const icon = iconUrl(t);
-      const iconHtml = icon
-        ? `<img class="token-logo" src="${escapeHtmlText(icon)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
-        : '';
+      const iconHtml = tokenIconHtml(t);
       const src = t.priceSource || (v > 0 ? 'Vybe list' : '—');
       return `<tr>
         <td>${i + 1}</td>
         <td><div class="token-header">${iconHtml}<span class="symbol">${escapeHtmlText(t.symbol)}</span>${t.verified ? ' <span class="meta">✓</span>' : ''}</div><span class="name">${escapeHtmlText(t.name)}</span></td>
         <td class="num">${formatAmount(t.amountUi, '')}</td>
-        <td class="holders-value-usd num" style="text-align:right">${v > 0 ? formatUsd(v) : '—'}</td>
+        <td class="holders-value-usd num" style="text-align:right">${v > 0 ? formatHoldingUsdValue(v) : '—'}</td>
         <td class="num" style="text-align:right">${v > 0 ? formatPctSmart(pct) : '—'}</td>
+        <td class="holders-category-col">${formatCategoryColumnHtml(t.category, t.subcategory)}</td>
+        <td>${t.verified ? 'Yes' : 'No'}</td>
+        <td class="num holders-price-col" style="text-align:right">${formatPriceColumnHtml(t)}</td>
+        <td class="holders-value-usd num" style="text-align:right">${t.marketCap != null ? formatUsdCompact(t.marketCap) : '—'}</td>
+        <td class="num" style="text-align:right">${t.currentSupply != null ? escapeHtmlText(formatCompactNum(t.currentSupply)) : '—'}</td>
+        <td class="num" style="text-align:right">${t.tokenAmountVolume24h != null ? escapeHtmlText(formatCompactNum(t.tokenAmountVolume24h)) : '—'}</td>
+        <td class="holders-value-usd num" style="text-align:right">${t.usdValueVolume24h != null ? formatUsdCompact(t.usdValueVolume24h) : '—'}</td>
         <td>${escapeHtmlText(src)}</td>
         <td class="meta">${escapeHtmlText(truncateAddress(t.mintAddress))}</td>
       </tr>`;
@@ -470,6 +744,9 @@ async function fetchBalances() {
   fetchAllBtn.disabled = true;
   loadingIndicator.hidden = false;
   holdersLoading.hidden = false;
+  logoFailedMints.clear();
+  logoPendingRepairMints.clear();
+  logoImageLoadedMints.clear();
 
   try {
     const limit = limitSelect.value || '100';
@@ -485,7 +762,9 @@ async function fetchBalances() {
     renderCharts(lastTokens, wallet, totalUsd);
     renderTable(lastTokens, totalUsd);
 
-    holdersMeta.textContent = `${lastTokens.length} tokens · RPC amounts + Vybe merge · prices enriched server-side (Jupiter → pump.fun → Vybe).`;
+    holdersMeta.textContent = `${lastTokens.length} tokens · RPC amounts + Vybe merge · Vybe token-details for category, supply, volume, and 1d/7d price change.`;
+
+    queueTopLogoRepairs(lastTokens);
   } catch (err) {
     showError(err instanceof Error ? err.message : String(err));
   } finally {
@@ -501,6 +780,9 @@ fetchAllBtn.addEventListener('click', () => fetchBalances());
 walletInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') fetchBalances();
 });
+
+window.__walletBalancesIconError = handleTokenIconError;
+window.__walletBalancesIconLoad = handleTokenIconLoad;
 
 // Auto-load demo wallet on first visit
 fetchBalances();

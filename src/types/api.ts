@@ -11,8 +11,14 @@ export interface VybeToken {
   price7d?: number;
   updateTime?: number;
   priceUsd?: string;
+  marketCap?: number;
   marketCapUsd?: string;
   verified?: boolean;
+  category?: string | null;
+  subcategory?: string | null;
+  currentSupply?: number;
+  tokenAmountVolume24h?: number | null;
+  usdValueVolume24h?: number | null;
   [key: string]: unknown;
 }
 

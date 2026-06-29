@@ -37,6 +37,11 @@ export interface CachedTokenMeta {
   priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API';
   marketCapUsd?: number;
   liquidityUsd?: number;
+  category?: string;
+  subcategory?: string;
+  currentSupply?: number;
+  tokenAmountVolume24h?: number;
+  usdValueVolume24h?: number;
   poolAddress?: string;
   bondingCurveAddress?: string;
   programAddress?: string;
@@ -112,11 +117,50 @@ function imageUrlFromMetadataJson(buf: Buffer): string | null {
   try {
     const text = buf.toString('utf8').trim();
     if (!text.startsWith('{')) return null;
-    const data = JSON.parse(text) as { image?: unknown };
-    const image = String(data.image ?? '').trim();
+    const data = JSON.parse(text) as { image?: unknown; image_uri?: unknown };
+    const image = String(data.image ?? data.image_uri ?? '').trim();
     return image || null;
   } catch {
     return null;
+  }
+}
+
+/** Fetch JSON metadata (uxento, rapidlaunch, IPFS, …) and return nested image URL. */
+export async function fetchMetadataJsonImageUrl(metadataUrl: string): Promise<string | undefined> {
+  const url = metadataUrl.trim();
+  if (!url) return undefined;
+  const fetched = await fetchIconBytes(url);
+  if (!fetched) return undefined;
+  const { buf, contentType } = fetched;
+  const textStart = buf.toString('utf8').trimStart();
+  if (contentType.includes('application/json') || textStart.startsWith('{')) {
+    const nested = imageUrlFromMetadataJson(buf);
+    return nested ?? undefined;
+  }
+  if (isImageBuffer(buf)) return url;
+  const nested = imageUrlFromMetadataJson(buf);
+  return nested ?? undefined;
+}
+
+export function getCachedTokenIconWebPath(mint: string): string | undefined {
+  return findExistingIcon(mint.trim())?.webPath;
+}
+
+/** Remove cached icon files so a bad Jupiter/Vybe URL can be replaced. */
+export function removeTokenIconFiles(mint: string): void {
+  const m = mint.trim();
+  if (!m) return;
+  for (const dir of [PUBLIC_ICON_DIR, RUNTIME_ICON_DIR]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (f === m || f.startsWith(`${m}.`)) {
+        try {
+          fs.unlinkSync(path.join(dir, f));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
   }
 }
 
@@ -396,8 +440,16 @@ export async function cacheTokenMetaFromVybe(
         ? token.priceSource
         : undefined,
     marketCapUsd:
+      pickOptionalNumber(token, 'marketCap') ??
       pickOptionalNumber(token, 'marketCapUsdNum') ??
-      (typeof token.marketCapUsd === 'string' ? pickOptionalNumber({ marketCapUsdNum: token.marketCapUsd }, 'marketCapUsdNum') : undefined),
+      (typeof token.marketCapUsd === 'string'
+        ? pickOptionalNumber({ marketCapUsdNum: token.marketCapUsd }, 'marketCapUsdNum')
+        : undefined),
+    category: pickOptionalString(token, 'category'),
+    subcategory: pickOptionalString(token, 'subcategory'),
+    currentSupply: pickOptionalNumber(token, 'currentSupply'),
+    tokenAmountVolume24h: pickOptionalNumber(token, 'tokenAmountVolume24h'),
+    usdValueVolume24h: pickOptionalNumber(token, 'usdValueVolume24h'),
     liquidityUsd: pickOptionalNumber(token, 'liquidityUsd'),
     poolAddress: pickOptionalString(token, 'poolAddress'),
     bondingCurveAddress: pickOptionalString(token, 'bondingCurveAddress'),

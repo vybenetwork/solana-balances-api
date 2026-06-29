@@ -7,22 +7,24 @@
 import type { AxiosInstance } from 'axios';
 import { getToken } from './tokens.js';
 import { fetchJupiterTokenDetails } from './jupiter-token-fallback.js';
-import { fetchPumpfunTokenDetails } from './pumpfun-price-fallback.js';
+import { fetchPumpfunTokenDetails, fetchPumpfunLogoUrl } from './pumpfun-price-fallback.js';
 import type { PriceResolveSource } from './token-meta-api.js';
+import { repairTokenIcon } from './repair-token-icon.js';
 import { isMintLikeLabel } from './token-label.js';
 import { NATIVE_SOL_MINT, WSOL_MINT, isVybeFirstPriceMint } from './sol-mints.js';
 import type { VybeToken } from '../types/api.js';
 import {
   cacheTokenMetaFromVybe,
   clearMintLikeStubFromDisk,
-  ensureTokenIconCached,
   getCachedTokenMetaFromDisk,
   hasCachedTokenIcon,
   isUnusableTokenMeta,
-  readTokenMetaCache,
-  writeTokenMetaCache,
   type CachedTokenMeta,
 } from '../token-icon-cache.js';
+
+function isPumpFunMint(mint: string): boolean {
+  return mint.trim().toLowerCase().endsWith('pump');
+}
 
 function vybeDecimals(token: VybeToken): number | undefined {
   if (typeof token.decimals === 'number' && Number.isFinite(token.decimals)) return token.decimals;
@@ -70,6 +72,12 @@ function metaSourceOrder(
   disk: CachedTokenMeta | null,
   skipVybe: boolean,
 ): MetaSource[] {
+  if (isPumpFunMint(mint)) {
+    const pumpOrder: MetaSource[] = skipVybe || shouldSkipVybeMeta(disk, mint)
+      ? ['pumpfun']
+      : ['pumpfun', 'vybe'];
+    return pumpOrder;
+  }
   const orderKey = isVybeFirstPriceMint(mint) ? 'vybeFirst' : 'default';
   const order = [...META_SOURCE_ORDER[orderKey]];
   if (skipVybe || shouldSkipVybeMeta(disk, mint)) {
@@ -109,8 +117,10 @@ async function applyPumpfunMeta(
       decimalsHint,
     });
     if (!pumpfun) return false;
+    const logoUrl = (await fetchPumpfunLogoUrl(mint)) ?? pumpfun.token.logoUrl;
     await cacheTokenMetaFromVybe(mint, {
       ...pumpfun.token,
+      logoUrl,
       priceFetchedAt: Date.now(),
       priceSource: 'Pumpfun-API',
     });
@@ -167,47 +177,6 @@ async function applyMetaSource(
   if (source === 'vybe') return applyVybeTokenDetails(http, mint);
   if (source === 'jupiter') return applyJupiterMeta(mint, decimalsHint);
   return applyPumpfunMeta(mint, solPriceUsd, decimalsHint);
-}
-
-/** Re-download icon when JSON cache points at a missing local file. */
-export async function repairTokenIcon(mint: string): Promise<string | undefined> {
-  const m = mint.trim();
-  if (!m || hasCachedTokenIcon(m)) {
-    const hit = getCachedTokenMetaFromDisk(m);
-    return hit?.logoUrl;
-  }
-
-  const solPriceUsd = solPriceUsdFromDisk();
-  let remoteUrl: string | undefined;
-
-  try {
-    const jupiter = await fetchJupiterTokenDetails(m, {});
-    remoteUrl = typeof jupiter?.token.logoUrl === 'string' ? jupiter.token.logoUrl : undefined;
-  } catch {
-    /* try pump.fun next */
-  }
-
-  if (!remoteUrl) {
-    try {
-      const pumpfun = await fetchPumpfunTokenDetails(m, { solPriceUsd });
-      remoteUrl = typeof pumpfun?.token.logoUrl === 'string' ? pumpfun.token.logoUrl : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
-  if (!remoteUrl) return undefined;
-
-  const local = await ensureTokenIconCached(m, remoteUrl);
-  if (!local) return undefined;
-
-  const cache = readTokenMetaCache();
-  const entry = cache[m];
-  if (entry) {
-    entry.logoUrl = local;
-    writeTokenMetaCache(cache);
-  }
-  return local;
 }
 
 export interface ResolveTokenMetaResult {

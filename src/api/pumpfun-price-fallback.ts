@@ -263,6 +263,18 @@ export function liquidityUsdFromPumpfunData(
   return usdMc;
 }
 
+/** Logo URL from pump.fun: image_uri, else metadata_uri JSON (uxento `image`, etc.). */
+export async function fetchPumpfunLogoUrl(mint: string): Promise<string | undefined> {
+  const { fetchMetadataJsonImageUrl } = await import('../token-icon-cache.js');
+  const record = await fetchPumpfunCoin(mint);
+  if (!record.data) return undefined;
+  const imageUri = pickString(record.data, 'image_uri');
+  if (imageUri) return imageUri;
+  const metadataUri = pickString(record.data, 'metadata_uri');
+  if (!metadataUri) return undefined;
+  return await fetchMetadataJsonImageUrl(metadataUri);
+}
+
 /** Map a pump.fun coin payload to a Vybe-like token record. */
 export function mapPumpfunCoinToTokenRecord(
   mint: string,
