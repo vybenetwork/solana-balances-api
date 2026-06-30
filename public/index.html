@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=10" />
+    <link rel="stylesheet" href="app.css?v=20" />
   </head>
   <body>
     <div class="container">
@@ -236,7 +236,8 @@
         </div>
         <div class="token-supply-grid token-supply-grid--trade-count-pie-row token-supply-grid--section-gap">
           <div class="token-supply-card token-supply-card--fullwidth token-supply-card--trade-tier-dash token-supply-card--holders-dashboard-merged">
-            <section class="holders-dash-section holders-dash-section--volume-pie">
+            <div class="wallet-charts-row">
+            <section class="holders-dash-section holders-dash-section--volume-pie wallet-charts-row__col wallet-charts-row__col--portfolio">
               <div class="token-supply-card token-supply-card--fullwidth token-supply-card--trade-tier-dash holders-dash-nested-supply-pie">
                 <header class="token-trade-tier-dash__top">
                   <div class="token-trade-tier-dash__titles">
@@ -250,7 +251,6 @@
                 </header>
                 <div class="token-trade-tier-dash__main">
                   <div class="token-trade-tier-dash__chart-col">
-                    <h3 class="token-stats-group-title token-trade-tier-dash__chart-title">Share Of Portfolio Value</h3>
                     <div class="token-supply-wrap token-supply-wrap--trade-tier-pie">
                       <div class="token-supply-pie token-supply-pie--donut-labels" id="portfolioPie" aria-label="Portfolio pie chart"></div>
                     </div>
@@ -262,15 +262,16 @@
               </div>
             </section>
 
-            <section class="holders-dash-section">
+            <section class="holders-dash-section wallet-charts-row__col wallet-charts-row__col--usd-bands">
               <div class="holders-dash-cohort-stack-block">
                 <h3 class="token-stats-group-title token-trade-tier-dash__chart-title">Holdings By USD Value Band</h3>
                 <p class="token-trade-tier-dash__chart-note wallet-pnl-pnl-trading-lede">
-                  Count of tokens in each estimated USD position size (priced rows only).
+                  Count of tokens in each estimated USD position size.
                 </p>
                 <div class="holders-hbar-list wallet-usd-hbar-list" id="holdingsUsdBars" aria-label="Holdings by USD band"></div>
               </div>
             </section>
+            </div>
           </div>
         </div>
       </section>
@@ -324,6 +325,6 @@
       </section>
     </div>
     <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=18"></script>
   </body>
 </html>

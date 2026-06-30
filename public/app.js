@@ -541,21 +541,32 @@ function renderWalletSummaryPlaceholder() {
 
 function walletUsdBands() {
   return [
-    { label: '<$0.01', contains: (v) => v > 0 && v < 0.01 },
-    { label: '$0.01–0.1', contains: (v) => v >= 0.01 && v < 0.1 },
-    { label: '$0.1–1', contains: (v) => v >= 0.1 && v < 1 },
-    { label: '$1–10', contains: (v) => v >= 1 && v < 10 },
-    { label: '$10–100', contains: (v) => v >= 10 && v < 100 },
-    { label: '$100–1K', contains: (v) => v >= 100 && v < 1000 },
-    { label: '$1K+', contains: (v) => v >= 1000 && v < 10000 },
-    { label: '$10K+', contains: (v) => v >= 10000 },
+    { label: '$0.01', contains: (v) => v > 0 && v < 0.01 },
+    { label: '$0.01-$0.10', contains: (v) => v >= 0.01 && v < 0.1 },
+    { label: '$0.10-$1.00', contains: (v) => v >= 0.1 && v < 1 },
+    { label: '$1.00-$10.00', contains: (v) => v >= 1 && v < 10 },
+    { label: '$10.00-$100.00', contains: (v) => v >= 10 && v < 100 },
+    { label: '$100.00-$1,000', contains: (v) => v >= 100 && v < 1000 },
+    { label: '$1,000-$10,000', contains: (v) => v >= 1000 && v < 10000 },
+    { label: '$10,000+', contains: (v) => v >= 10000 },
   ];
 }
 
+function renderUsdBarRow(d, i, count, total, maxC, defsLen) {
+  const pct = total > 0 ? (count / total) * 100 : 0;
+  const w = Math.min(100, (count / maxC) * 100);
+  const gradT = defsLen > 1 ? (defsLen - 1 - i) / (defsLen - 1) : 0;
+  const safe = escapeHtmlText(d.label);
+  return `<div class="holders-hbar-row">
+    <span class="holders-hbar-name" title="${safe}">${safe}</span>
+    <div class="holders-hbar-track"><div class="holders-hbar-fill holders-hbar-fill--trade-scale" style="width:${w}%;--trade-grad-t:${gradT}"></div></div>
+    <span class="holders-hbar-meta">${formatPctSmart(pct)} <span class="holders-value-usd">${count.toLocaleString()} token(s)</span></span>
+  </div>`;
+}
+
 function renderUsdBarsPlaceholderHtml() {
-  const skeletonRow =
-    '<div class="holders-hbar-row"><span class="holders-hbar-name holders-hbar-meta">—</span><div class="holders-hbar-track"><div class="holders-hbar-fill" style="width:0%"></div></div><span class="holders-hbar-meta">— <span class="holders-value-usd">—</span></span></div>';
-  return Array.from({ length: walletUsdBands().length }, () => skeletonRow).join('');
+  const defs = walletUsdBands();
+  return defs.map((d, i) => renderUsdBarRow(d, i, 0, 0, 1, defs.length)).join('');
 }
 
 function renderUsdBars(tokens) {
@@ -573,18 +584,7 @@ function renderUsdBars(tokens) {
   const maxC = Math.max(1, ...counts);
   const total = pricedCount || 1;
   holdingsUsdBars.innerHTML = defs
-    .map((d, i) => {
-      const c = counts[i];
-      const pct = (c / total) * 100;
-      const w = Math.min(100, (c / maxC) * 100);
-      const gradT = defs.length > 1 ? (defs.length - 1 - i) / (defs.length - 1) : 0;
-      const safe = escapeHtmlText(d.label);
-      return `<div class="holders-hbar-row">
-        <span class="holders-hbar-name" title="${safe}">${safe}</span>
-        <div class="holders-hbar-track"><div class="holders-hbar-fill holders-hbar-fill--trade-scale" style="width:${w}%;--trade-grad-t:${gradT}"></div></div>
-        <span class="holders-hbar-meta">${formatPctSmart(pct)} <span class="holders-value-usd">${c.toLocaleString()} token(s)</span></span>
-      </div>`;
-    })
+    .map((d, i) => renderUsdBarRow(d, i, counts[i], total, maxC, defs.length))
     .join('');
 }
 
@@ -617,7 +617,7 @@ function setChartsPlaceholder() {
   ].join('');
   holdingsUsdBars.innerHTML = renderUsdBarsPlaceholderHtml();
   portfolioPieLede.textContent = 'Load a wallet to see portfolio allocation by USD value.';
-  portfolioPieInsight.textContent = 'Top ranks are grouped like the holders whale dashboard.';
+  portfolioPieInsight.textContent = 'Holdings grouped by USD rank and portfolio share.';
 }
 
 function renderCharts(tokens, wallet, totalUsd) {
