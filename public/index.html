@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=20" />
+    <link rel="stylesheet" href="app.css?v=21" />
   </head>
   <body>
     <div class="container">
@@ -105,39 +105,41 @@
             <div class="page-masthead__group page-masthead__group--related">
               <span class="page-masthead__label">Other Related API Demos</span>
               <div class="page-masthead__btns page-masthead__btns--related">
-                <a
-                  class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-holders"
-                  href="https://solana-top-token-holders-and-whales-api.vybenetwork.com/"
-                >
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-token" href="https://solana-token-stats-metadata-api.vybenetwork.com/">
                   <span class="page-masthead__demo-preview" aria-hidden="true">
-                    <img
-                      src="https://solana-top-token-holders-and-whales-api.vybenetwork.com/solana-top-token-holders-and-whales-api.png"
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <img src="https://solana-token-stats-metadata-api.vybenetwork.com/solana-token-stats-metadata-api.jpg" alt="" loading="lazy" decoding="async" />
                   </span>
-                  <span class="page-masthead__btn-text">Top Token Holders</span>
+                  <span class="page-masthead__btn-text">Token Stats &amp; Info</span>
                 </a>
-                <a
-                  class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-wallet"
-                  href="https://solana-wallet-pnl-profit-and-loss-api.vybenetwork.com/"
-                >
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-ohlc" href="https://solana-ohlc-candlestick-data-api.vybenetwork.com/">
                   <span class="page-masthead__demo-preview" aria-hidden="true">
-                    <img
-                      src="https://solana-wallet-pnl-profit-and-loss-api.vybenetwork.com/solana-wallet-pnl-profit-and-loss-api-app.jpg"
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <img src="https://solana-ohlc-candlestick-data-api.vybenetwork.com/solana-ohlc-candlestick-data-api.jpg" alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <span class="page-masthead__btn-text">OHLC Candlesticks</span>
+                </a>
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-trades" href="https://solana-historical-trade-data-api.vybenetwork.com/">
+                  <span class="page-masthead__demo-preview" aria-hidden="true">
+                    <img src="https://solana-historical-trade-data-api.vybenetwork.com/solana-historical-trade-data-api.jpg" alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <span class="page-masthead__btn-text">Historical Trades</span>
+                </a>
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-wallet" href="https://solana-wallet-pnl-profit-and-loss-api.vybenetwork.com/">
+                  <span class="page-masthead__demo-preview" aria-hidden="true">
+                    <img src="https://solana-wallet-pnl-profit-and-loss-api.vybenetwork.com/solana-wallet-pnl-profit-and-loss-api-app.jpg" alt="" loading="lazy" decoding="async" />
                   </span>
                   <span class="page-masthead__btn-text">Wallet Profit &amp; Loss</span>
                 </a>
-                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-swap" href="https://solana-swap-api.vybenetwork.com/">
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-holders" href="https://solana-top-token-holders-and-whales-api.vybenetwork.com/">
                   <span class="page-masthead__demo-preview" aria-hidden="true">
-                    <img src="https://solana-swap-api.vybenetwork.com/solana-swap-api-app.jpg" alt="" loading="lazy" decoding="async" />
+                    <img src="https://solana-top-token-holders-and-whales-api.vybenetwork.com/solana-top-token-holders-and-whales-api-app.jpg" alt="" loading="lazy" decoding="async" />
                   </span>
-                  <span class="page-masthead__btn-text">Swap &amp; Router</span>
+                  <span class="page-masthead__btn-text">Top Token Holders</span>
+                </a>
+                <a class="page-masthead__btn page-masthead__btn--demo page-masthead__btn--demo-traders" href="https://solana-top-traders-wallets-and-tokens-api.vybenetwork.com/">
+                  <span class="page-masthead__demo-preview" aria-hidden="true">
+                    <img src="https://solana-top-traders-wallets-and-tokens-api.vybenetwork.com/solana-top-traders-wallets-and-tokens-api-app.jpg" alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <span class="page-masthead__btn-text">Top Token Traders</span>
                 </a>
               </div>
             </div>
@@ -265,9 +267,6 @@
             <section class="holders-dash-section wallet-charts-row__col wallet-charts-row__col--usd-bands">
               <div class="holders-dash-cohort-stack-block">
                 <h3 class="token-stats-group-title token-trade-tier-dash__chart-title">Holdings By USD Value Band</h3>
-                <p class="token-trade-tier-dash__chart-note wallet-pnl-pnl-trading-lede">
-                  Count of tokens in each estimated USD position size.
-                </p>
                 <div class="holders-hbar-list wallet-usd-hbar-list" id="holdingsUsdBars" aria-label="Holdings by USD band"></div>
               </div>
             </section>
@@ -325,6 +324,6 @@
       </section>
     </div>
     <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=18"></script>
+    <script src="app.js?v=19"></script>
   </body>
 </html>

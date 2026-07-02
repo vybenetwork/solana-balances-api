@@ -129,23 +129,33 @@ function formatPriceUsdSpot(n) {
   return `$${num.toPrecision(4)}`;
 }
 
-function formatPriceChangePctHtml(pct) {
-  if (pct == null || !Number.isFinite(Number(pct))) return '—';
+function formatPctChangeWithArrow(pct) {
   const num = Number(pct);
-  const toneClass =
-    num > 0 ? 'usd-tone usd-tone--positive' : num < 0 ? 'usd-tone usd-tone--negative' : 'usd-tone usd-tone--neutral';
-  const sign = num > 0 ? '+' : '';
-  return `<span class="token-stat-price-pct ${toneClass}">${sign}${formatPctSmart(num)}</span>`;
+  if (!Number.isFinite(num)) return '—';
+  const arrow = num >= 0 ? '↑' : '↓';
+  const abs = Math.abs(num);
+  if (abs < 0.99) return `${arrow}${abs.toFixed(2)}%`;
+  return `${arrow}${Math.trunc(abs)}%`;
 }
 
-function formatPriceChangeLineHtml(label, pct) {
-  return `<div class="holders-price-change-line"><span class="holders-price-change-label">${escapeHtmlText(label)}</span> ${formatPriceChangePctHtml(pct)}</div>`;
+function formatPriceChangeChipHtml(label, pct) {
+  if (pct == null || !Number.isFinite(Number(pct))) return '';
+  const num = Number(pct);
+  const cls = num > 0 ? 'swap-pair-chg--up' : num < 0 ? 'swap-pair-chg--down' : 'swap-pair-chg--muted';
+  return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} ${formatPctChangeWithArrow(num)}</span>`;
 }
 
 function formatPriceColumnHtml(t) {
   const spot = formatPriceUsdSpot(t.priceUsd);
   if (spot === '—') return '—';
-  return `<div class="holders-price-cell"><div class="holders-price-spot">${escapeHtmlText(spot)}</div>${formatPriceChangeLineHtml('1 Day', t.priceChange1dPct)}${formatPriceChangeLineHtml('7 Days', t.priceChange7dPct)}</div>`;
+  const chips = [
+    formatPriceChangeChipHtml('1d:', t.priceChange1dPct),
+    formatPriceChangeChipHtml('7d:', t.priceChange7dPct),
+  ].filter(Boolean);
+  const changesHtml = chips.length
+    ? `<div class="holders-price-changes">${chips.join('')}</div>`
+    : '<span class="swap-pair-chg swap-pair-chg--muted">—</span>';
+  return `<div class="holders-price-cell"><div class="holders-price-spot">${escapeHtmlText(spot)}</div>${changesHtml}</div>`;
 }
 
 function formatCategoryColumnHtml(category, subcategory) {
