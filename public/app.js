@@ -800,14 +800,29 @@ function walletUsdBands() {
   ];
 }
 
+const WALLET_USD_BAND_COLORS = [
+  USD_MAGNITUDE_BAR_COLORS.red,
+  USD_MAGNITUDE_BAR_COLORS.orange,
+  USD_MAGNITUDE_BAR_COLORS.yellow,
+  USD_MAGNITUDE_BAR_COLORS.lightGreen,
+  USD_MAGNITUDE_BAR_COLORS.green,
+  USD_MAGNITUDE_BAR_COLORS.green,
+  USD_MAGNITUDE_BAR_COLORS.green,
+  USD_MAGNITUDE_BAR_COLORS.green,
+];
+
+function walletUsdBandColor(i) {
+  return WALLET_USD_BAND_COLORS[i] ?? USD_MAGNITUDE_BAR_COLORS.green;
+}
+
 function renderUsdBarRow(d, i, count, total, maxC, defsLen) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   const w = Math.min(100, (count / maxC) * 100);
-  const gradT = defsLen > 1 ? (defsLen - 1 - i) / (defsLen - 1) : 0;
+  const color = walletUsdBandColor(i);
   const safe = escapeHtmlText(d.label);
   return `<div class="holders-hbar-row">
     <span class="holders-hbar-name" title="${safe}">${safe}</span>
-    <div class="holders-hbar-track"><div class="holders-hbar-fill holders-hbar-fill--trade-scale" style="width:${w}%;--trade-grad-t:${gradT}"></div></div>
+    <div class="holders-hbar-track"><div class="holders-hbar-fill" style="width:${w}%;background:${color}"></div></div>
     <span class="holders-hbar-meta">${formatPctSmart(pct)} <span class="holders-value-usd">${count.toLocaleString()} token(s)</span></span>
   </div>`;
 }
