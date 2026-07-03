@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=59" />
+    <link rel="stylesheet" href="app.css?v=66" />
   </head>
   <body>
     <div class="container">
@@ -294,22 +294,6 @@
               <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-pages" aria-hidden="true"></span>Tokens loaded</span>
               <span class="trades-summary-value" id="holdersSummaryCount">0</span>
             </div>
-            <div class="trades-summary-item holders-summary-item--profitable">
-              <span class="trades-summary-label"><span data-holders-pie-rank="profitable" aria-hidden="true"></span>Profitable</span>
-              <span class="trades-summary-value" id="holdersSummaryProfitable">0</span>
-            </div>
-            <div class="trades-summary-item holders-summary-item--breaking-even">
-              <span class="trades-summary-label"><span data-holders-pie-rank="breaking_even" aria-hidden="true"></span>Breaking even</span>
-              <span class="trades-summary-value" id="holdersSummaryBreakingEven">0</span>
-            </div>
-            <div class="trades-summary-item holders-summary-item--losing">
-              <span class="trades-summary-label"><span data-holders-pie-rank="losing" aria-hidden="true"></span>Losing value</span>
-              <span class="trades-summary-value" id="holdersSummaryLosing">0</span>
-            </div>
-            <div class="trades-summary-item holders-summary-item--dead">
-              <span class="trades-summary-label"><span data-holders-pie-rank="dead" aria-hidden="true"></span>Dead tokens</span>
-              <span class="trades-summary-value" id="holdersSummaryDead">0</span>
-            </div>
             <div class="trades-summary-item holders-summary-item--verified">
               <span class="trades-summary-label">
                 <span class="holders-summary-label-badge" data-holders-badge="verified" aria-hidden="true"></span>
@@ -327,15 +311,31 @@
               </span>
               <span class="trades-summary-value" id="holdersSummaryCategorised">0</span>
             </div>
+            <div class="trades-summary-item holders-summary-item--profitable">
+              <span class="trades-summary-label"><span data-holders-pie-rank="profitable" aria-hidden="true"></span>Profitable</span>
+              <span class="trades-summary-value" id="holdersSummaryProfitable">0</span>
+            </div>
+            <div class="trades-summary-item holders-summary-item--breaking-even">
+              <span class="trades-summary-label"><span data-holders-pie-rank="breaking_even" aria-hidden="true"></span>Breaking even</span>
+              <span class="trades-summary-value" id="holdersSummaryBreakingEven">0</span>
+            </div>
+            <div class="trades-summary-item holders-summary-item--losing">
+              <span class="trades-summary-label"><span data-holders-pie-rank="losing" aria-hidden="true"></span>Losing value</span>
+              <span class="trades-summary-value" id="holdersSummaryLosing">0</span>
+            </div>
+            <div class="trades-summary-item holders-summary-item--dead">
+              <span class="trades-summary-label"><span data-holders-pie-rank="dead" aria-hidden="true"></span>Dead tokens</span>
+              <span class="trades-summary-value" id="holdersSummaryDead">0</span>
+            </div>
           </div>
           <div class="table-wrap table-wrap--scroll">
             <table id="holdersTable">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>% portfolio</th>
                   <th>Change<br /><span class="holders-th-sublabel">(1d / 7d)</span></th>
                   <th>Token</th>
+                  <th>% portfolio</th>
                   <th>Value (USD)</th>
                   <th>Amount</th>
                   <th>Price (USD)</th>
@@ -357,6 +357,6 @@
       </section>
     </div>
     <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=59"></script>
+    <script src="app.js?v=66"></script>
   </body>
 </html>

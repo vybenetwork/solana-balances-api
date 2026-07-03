@@ -21,6 +21,11 @@ const STABLECOIN_MINTS = new Set([
 const STABLE_SYMBOLS = new Set(['USD', 'USDC', 'USDT', 'PYUSD', 'USD1', 'USDE', 'USDH', 'UXD', 'USDY']);
 const TIER_LEGEND_SVG_VOLUME =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h4v8H3v-8zm7-4h4v12h-4V8zm7 6h4v6h-4v-6z"/></svg>';
+const SOLSCAN_TOKEN = 'https://solscan.io/token/';
+const VYBE_PRICE_SOURCE_ICON =
+  '<svg class="holders-price-source__vybe-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.9364 12.6083C20.3117 15.433 18.9416 17.033 18.0329 17.4083C16.9089 17.8725 16.4695 18.6625 15.9858 19.7194C15.6566 19.1926 14.5873 18.0404 12.9438 17.6453C10.8895 17.1515 7.19566 18.3367 5.89196 16.1046C4.62097 13.9285 5.54654 11.3394 6.1795 8.97785C6.19579 8.91705 6.2119 8.8564 6.22776 8.79592C6.20485 8.78421 6.18215 8.77244 6.15966 8.76058C3.66062 7.44296 3.82176 5.19592 4.25245 4.64777C5.47172 8.1285 7.89595 4.53375 12.6278 4.29221C14.8641 4.17805 16.7479 4.89569 17.8415 6.62717L17.4927 6.05911C17.7369 5.79055 18.1669 5.04079 18.1586 4.549C19.0278 5.87246 18.9488 7.68974 19.1265 8.3811C19.3043 9.07246 19.5611 9.78357 19.9364 12.6083Z" fill="currentColor"/></svg>';
+const HOLDERS_EXTERNAL_LINK_SVG =
+  '<svg class="holders-mint-link__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M11 3h2v2M9 7l4-4M12 3H8a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9M7 5H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const walletInput = document.getElementById('wallet');
 const limitSelect = document.getElementById('limit');
@@ -233,16 +238,32 @@ function hasValidPriceChangePct(pct) {
 function formatPriceChangeChipHtml(label, pct) {
   if (!hasValidPriceChangePct(pct)) return '';
   const num = Number(pct);
-  const cls = num > 0 ? 'swap-pair-chg--up' : num < 0 ? 'swap-pair-chg--down' : 'swap-pair-chg--muted';
+  const cls = changeChipTierClass(num);
   return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} ${formatPctChangeWithArrow(num)}</span>`;
 }
 
-function formatMissingChangeChipHtml(label) {
-  const placeholder = label === '7d:' ? '----' : '---';
-  return `<span class="swap-pair-chg swap-pair-chg--missing">${escapeHtmlText(label)} ${placeholder}</span>`;
+function changeChipTierClass(pct) {
+  const num = Number(pct);
+  if (num > 1) return 'swap-pair-chg--up';
+  if (num < -0.5) return 'swap-pair-chg--down';
+  return 'swap-pair-chg--breaking-even';
 }
 
-function formatZeroChangeChipHtml(label) {
+function formatMissingChangeChipHtml(label, inheritPct = null) {
+  const placeholder = label === '7d:' ? '----' : '---';
+  if (label === '7d:' && hasValidPriceChangePct(inheritPct)) {
+    const cls = `${changeChipTierClass(Number(inheritPct))} swap-pair-chg--faded`;
+    return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} ${placeholder}</span>`;
+  }
+  const cls = label === '7d:' ? 'swap-pair-chg--missing-7d' : 'swap-pair-chg--missing';
+  return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} ${placeholder}</span>`;
+}
+
+function formatZeroChangeChipHtml(label, inheritPct = null) {
+  if (hasValidPriceChangePct(inheritPct)) {
+    const cls = `${changeChipTierClass(Number(inheritPct))} swap-pair-chg--faded`;
+    return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} 0%</span>`;
+  }
   return `<span class="swap-pair-chg swap-pair-chg--dead">${escapeHtmlText(label)} 0%</span>`;
 }
 
@@ -255,8 +276,8 @@ function formatChangeColumnHtml(t) {
   }
 
   const chips = [
-    has1d ? formatPriceChangeChipHtml('1d:', t.priceChange1dPct) : has7d ? formatZeroChangeChipHtml('1d:') : formatMissingChangeChipHtml('1d:'),
-    has7d ? formatPriceChangeChipHtml('7d:', t.priceChange7dPct) : formatMissingChangeChipHtml('7d:'),
+    has1d ? formatPriceChangeChipHtml('1d:', t.priceChange1dPct) : has7d ? formatZeroChangeChipHtml('1d:', t.priceChange7dPct) : formatMissingChangeChipHtml('1d:'),
+    has7d ? formatPriceChangeChipHtml('7d:', t.priceChange7dPct) : formatMissingChangeChipHtml('7d:', has1d ? t.priceChange1dPct : null),
   ];
 
   return `<div class="holders-price-changes">${chips.join('')}</div>`;
@@ -1070,6 +1091,27 @@ function holdersSummaryRatioValueHtml(count, total) {
   return `<span class="trades-summary-value__main">${safeCount}</span><span class="trades-summary-value__suffix"> / ${safeTotal} <span class="trades-summary-value__pct">(${escapeHtmlText(formatPctSmart(pct))})</span></span>`;
 }
 
+function isVybePriceSource(src) {
+  return /^vybe/i.test(String(src || '').trim());
+}
+
+function formatPriceSourceCellHtml(src) {
+  const text = String(src || '').trim() || '—';
+  if (text === '—') return '—';
+  if (isVybePriceSource(text)) {
+    return `<span class="holders-price-source">${VYBE_PRICE_SOURCE_ICON}<span>${escapeHtmlText(text)}</span></span>`;
+  }
+  return escapeHtmlText(text);
+}
+
+function formatMintCellHtml(mint) {
+  const addr = String(mint || '').trim();
+  if (!addr) return '—';
+  const label = truncateAddress(addr);
+  const href = `${SOLSCAN_TOKEN}${encodeURIComponent(addr)}`;
+  return `<a class="holders-mint-link" href="${escapeHtmlAttr(href)}" target="_blank" rel="noopener noreferrer" title="${escapeHtmlAttr(addr)}">${escapeHtmlText(label)}${HOLDERS_EXTERNAL_LINK_SVG}</a>`;
+}
+
 function renderTable(tokens, totalUsd) {
   updateHoldersSummaryStrip(tokens);
   const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
@@ -1082,16 +1124,16 @@ function renderTable(tokens, totalUsd) {
       const pieCat = classifyTokenPieChange(t);
       return `<tr class="holders-row holders-row--${pieCat}">
         <td class="holders-rank-col"><div class="holders-rank-cell">${holdersRankBadgeHtml(pieCat)}<span class="holders-rank-num holders-rank-num--${pieCat}">${i + 1}</span></div></td>
-        <td class="num holders-portfolio-col">${formatPortfolioPctColumnHtml(pct, v > 0)}</td>
         <td class="holders-change-col">${formatChangeColumnHtml(t)}</td>
         <td><div class="token-header">${iconHtml}<div class="token-header-text"><div class="symbol">${escapeHtmlText(t.symbol)}${tokenSymbolBadgesHtml(t)}</div><div class="name">${escapeHtmlText(t.name)}</div></div></div></td>
+        <td class="num holders-portfolio-col">${formatPortfolioPctColumnHtml(pct, v > 0)}</td>
         <td class="holders-value-usd num">${v > 0 ? formatHoldingUsdValue(v) : '—'}</td>
         <td class="num holders-amount-col">${formatHoldingAmountCellHtml(t)}</td>
         <td class="num holders-price-col">${formatPriceColumnHtml(t)}</td>
         <td class="num holders-mcap-supply-col">${formatMarketCapSupplyColumnHtml(t)}</td>
         <td class="num holders-vol-col">${formatUsdVolColumnHtml(t)}</td>
-        <td>${escapeHtmlText(src)}</td>
-        <td class="meta">${escapeHtmlText(truncateAddress(t.mintAddress))}</td>
+        <td class="holders-price-source-col">${formatPriceSourceCellHtml(src)}</td>
+        <td class="meta holders-mint-col">${formatMintCellHtml(t.mintAddress)}</td>
       </tr>`;
     })
     .join('');
