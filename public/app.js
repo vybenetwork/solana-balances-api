@@ -821,6 +821,31 @@ function walletUsdBandColor(i) {
   return WALLET_USD_BAND_COLORS[i] ?? USD_MAGNITUDE_BAR_COLORS.green;
 }
 
+function walletUsdBandIndex(valueUsd) {
+  const v = toNum(valueUsd);
+  if (v <= 0) return -1;
+  return walletUsdBands().findIndex((d) => d.contains(v));
+}
+
+const HOLDERS_MONEY_BAG_SVG =
+  '<path d="M10 2.75h4v1.05a1.85 1.85 0 0 1-1.85 1.85h-.3A1.85 1.85 0 0 1 10 3.8V2.75Z" fill="currentColor"/><path d="M6.5 7.75C6.5 5.68 8.18 4 10.25 4h3.5c2.07 0 3.75 1.68 3.75 3.75V15c0 2.07-1.68 3.75-3.75 3.75h-3.5C8.18 18.75 6.5 17.07 6.5 15V7.75Z" fill="currentColor" opacity="0.92"/><path d="M10.75 11.1h2.5M10.75 13.35h2.5" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="0.9" stroke-linecap="round"/>';
+
+function holdersMoneyBagIconHtml(color, bandLabel) {
+  const tip = bandLabel ? `USD band ${bandLabel}` : 'USD value band';
+  return `<span class="holders-value-usd-bag" style="color:${escapeHtmlAttr(color)}" title="${escapeHtmlAttr(tip)}" aria-label="${escapeHtmlAttr(tip)}"><svg class="holders-value-usd-bag__svg" viewBox="0 0 20 20" aria-hidden="true">${HOLDERS_MONEY_BAG_SVG}</svg></span>`;
+}
+
+function formatHoldingValueUsdCellHtml(valueUsd) {
+  const v = toNum(valueUsd);
+  if (!Number.isFinite(v) || v <= 0) return '—';
+  const bandIdx = walletUsdBandIndex(v);
+  const color = bandIdx >= 0 ? walletUsdBandColor(bandIdx) : USD_MAGNITUDE_BAR_COLORS.green;
+  const bandLabel = bandIdx >= 0 ? walletUsdBands()[bandIdx].label : '';
+  const icon = holdersMoneyBagIconHtml(color, bandLabel);
+  const text = formatHoldingUsdValue(v);
+  return `<span class="holders-value-usd-cell">${icon}<span class="holders-value-usd-amount">${escapeHtmlText(text)}</span></span>`;
+}
+
 function renderUsdBarRow(d, i, count, total, maxC, defsLen) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   const w = Math.min(100, (count / maxC) * 100);
@@ -1148,7 +1173,7 @@ function renderTable(tokens, totalUsd) {
         <td class="holders-change-col">${formatChangeColumnHtml(t)}</td>
         <td><div class="token-header">${iconHtml}<div class="token-header-text"><div class="symbol">${escapeHtmlText(t.symbol)}${tokenSymbolBadgesHtml(t)}</div><div class="name">${escapeHtmlText(t.name)}</div></div></div></td>
         <td class="num holders-portfolio-col">${formatPortfolioPctColumnHtml(pct, v > 0)}</td>
-        <td class="holders-value-usd num">${v > 0 ? formatHoldingUsdValue(v) : '—'}</td>
+        <td class="holders-value-usd num">${formatHoldingValueUsdCellHtml(v)}</td>
         <td class="num holders-amount-col">${formatHoldingAmountCellHtml(t)}</td>
         <td class="num holders-price-col">${formatPriceColumnHtml(t)}</td>
         <td class="num holders-mcap-supply-col">${formatMarketCapSupplyColumnHtml(t)}</td>

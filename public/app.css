@@ -3394,6 +3394,32 @@ td .mono {
   color: #86efac;
 }
 
+.holders-value-usd-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.holders-value-usd-bag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.holders-value-usd-bag__svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.holders-value-usd-amount {
+  color: #86efac;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 *::-webkit-scrollbar {
   width: 10px;
 }
