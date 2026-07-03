@@ -2777,7 +2777,7 @@ button:not(.vybe-action-btn):disabled {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: #22d3ee;
+  display: block;
 }
 
 .holders-mint-link {

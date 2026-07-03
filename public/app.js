@@ -23,7 +23,7 @@ const TIER_LEGEND_SVG_VOLUME =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h4v8H3v-8zm7-4h4v12h-4V8zm7 6h4v6h-4v-6z"/></svg>';
 const SOLSCAN_TOKEN = 'https://solscan.io/token/';
 const VYBE_PRICE_SOURCE_ICON =
-  '<svg class="holders-price-source__vybe-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.9364 12.6083C20.3117 15.433 18.9416 17.033 18.0329 17.4083C16.9089 17.8725 16.4695 18.6625 15.9858 19.7194C15.6566 19.1926 14.5873 18.0404 12.9438 17.6453C10.8895 17.1515 7.19566 18.3367 5.89196 16.1046C4.62097 13.9285 5.54654 11.3394 6.1795 8.97785C6.19579 8.91705 6.2119 8.8564 6.22776 8.79592C6.20485 8.78421 6.18215 8.77244 6.15966 8.76058C3.66062 7.44296 3.82176 5.19592 4.25245 4.64777C5.47172 8.1285 7.89595 4.53375 12.6278 4.29221C14.8641 4.17805 16.7479 4.89569 17.8415 6.62717L17.4927 6.05911C17.7369 5.79055 18.1669 5.04079 18.1586 4.549C19.0278 5.87246 18.9488 7.68974 19.1265 8.3811C19.3043 9.07246 19.5611 9.78357 19.9364 12.6083Z" fill="currentColor"/></svg>';
+  '<img class="holders-price-source__vybe-icon" src="/favicon.svg" alt="" width="14" height="14" decoding="async"/>';
 const HOLDERS_EXTERNAL_LINK_SVG =
   '<svg class="holders-mint-link__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M11 3h2v2M9 7l4-4M12 3H8a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9M7 5H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
