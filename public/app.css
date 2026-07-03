@@ -2783,22 +2783,37 @@ button:not(.vybe-action-btn):disabled {
 .holders-mint-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  color: #a1a1aa;
+  gap: 0.3rem;
+  color: #7dd3fc;
   text-decoration: none;
   white-space: nowrap;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  line-height: 1.1;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .holders-mint-link:hover {
-  color: #22d3ee;
-  text-decoration: underline;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.45);
+  text-decoration: none;
 }
 
 .holders-mint-link__icon {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.95;
+}
+
+#holdersTable .holders-mint-col {
+  color: #7dd3fc;
 }
 
 #holdersTable .amount-usdc {

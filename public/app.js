@@ -25,7 +25,7 @@ const SOLSCAN_TOKEN = 'https://solscan.io/token/';
 const VYBE_PRICE_SOURCE_ICON =
   '<img class="holders-price-source__vybe-icon" src="/favicon.svg" alt="" width="14" height="14" decoding="async"/>';
 const HOLDERS_EXTERNAL_LINK_SVG =
-  '<svg class="holders-mint-link__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M11 3h2v2M9 7l4-4M12 3H8a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9M7 5H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  '<svg class="holders-mint-link__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>';
 
 const walletInput = document.getElementById('wallet');
 const limitSelect = document.getElementById('limit');
