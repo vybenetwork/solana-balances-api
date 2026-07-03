@@ -4318,12 +4318,12 @@ td .mono {
 }
 
 .wallet-usd-hbar-list .holders-hbar-track {
-  height: 8px;
-  border-radius: 10px;
+  height: 11px;
+  border-radius: 6px;
 }
 
 .wallet-usd-hbar-list .holders-hbar-fill {
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .holders-hbar-fill--trade-scale {
