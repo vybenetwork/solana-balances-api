@@ -828,11 +828,11 @@ function walletUsdBandIndex(valueUsd) {
 }
 
 const HOLDERS_MONEY_BAG_SVG =
-  '<path d="M10 2.75h4v1.05a1.85 1.85 0 0 1-1.85 1.85h-.3A1.85 1.85 0 0 1 10 3.8V2.75Z" fill="currentColor"/><path d="M6.5 7.75C6.5 5.68 8.18 4 10.25 4h3.5c2.07 0 3.75 1.68 3.75 3.75V15c0 2.07-1.68 3.75-3.75 3.75h-3.5C8.18 18.75 6.5 17.07 6.5 15V7.75Z" fill="currentColor" opacity="0.92"/><path d="M10.75 11.1h2.5M10.75 13.35h2.5" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="0.9" stroke-linecap="round"/>';
+  '<path d="M11.25 2.35h1.5M9.85 5.1c0-.95 1-1.7 2.15-1.7s2.15.75 2.15 1.7-.95 1.45-2.15 1.45-2.15-.5-2.15-1.45Z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.85 9.15c.55 2.35.6 4.75.6 7.1 0 3.15 2.2 5.75 5.15 5.75h.8c2.95 0 5.15-2.6 5.15-5.75 0-2.35.05-4.75.6-7.1-1.05-1.25-2.7-2.05-4.55-2.05h-.8c-1.85 0-3.5.8-4.55 2.05Z" fill="currentColor"/><path d="M12 12.35v3.85M10.35 13.85h2.9a1 1 0 1 1 0 2H10.35" fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round"/>';
 
 function holdersMoneyBagIconHtml(color, bandLabel) {
   const tip = bandLabel ? `USD band ${bandLabel}` : 'USD value band';
-  return `<span class="holders-value-usd-bag" style="color:${escapeHtmlAttr(color)}" title="${escapeHtmlAttr(tip)}" aria-label="${escapeHtmlAttr(tip)}"><svg class="holders-value-usd-bag__svg" viewBox="0 0 20 20" aria-hidden="true">${HOLDERS_MONEY_BAG_SVG}</svg></span>`;
+  return `<span class="holders-value-usd-bag" style="color:${escapeHtmlAttr(color)}" title="${escapeHtmlAttr(tip)}" aria-label="${escapeHtmlAttr(tip)}"><svg class="holders-value-usd-bag__svg" viewBox="0 0 24 24" aria-hidden="true">${HOLDERS_MONEY_BAG_SVG}</svg></span>`;
 }
 
 function formatHoldingValueUsdCellHtml(valueUsd) {
