@@ -2384,18 +2384,7 @@ button:not(.vybe-action-btn):disabled {
   z-index: 1;
 }
 
-.holders-summary-tip {
-  margin-left: 0.15rem;
-  vertical-align: middle;
-  cursor: help;
-}
-
-.holders-summary-tip .token-badge__svg {
-  width: 11px;
-  height: 11px;
-}
-
-.holders-summary-tip .token-badge-tip {
+.holders-summary-item--categorised .token-badge-tip {
   left: calc(100% + 0.35rem);
   top: 50%;
   transform: translateY(-50%);
@@ -2473,10 +2462,88 @@ button:not(.vybe-action-btn):disabled {
 }
 
 .trades-summary-label .field-icon {
-  width: 0.82rem;
-  height: 0.82rem;
+  position: relative;
+  left: auto;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  opacity: 0.9;
+  opacity: 1;
+  background: transparent;
+  border-radius: 0;
+}
+
+.trades-summary-label .field-icon::after {
+  background: #71717a;
+}
+
+.trades-summary-item--count .trades-summary-label .field-icon::after {
+  background: #4ade80;
+}
+
+.holders-summary-item--profitable .trades-summary-label .field-icon::after {
+  background: #4ade80;
+}
+
+.holders-summary-item--breaking-even .trades-summary-label .field-icon::after {
+  background: #60a5fa;
+}
+
+.holders-summary-item--losing .trades-summary-label .field-icon::after {
+  background: #f87171;
+}
+
+.holders-summary-item--dead .trades-summary-label .field-icon::after {
+  background: #fb923c;
+}
+
+.holders-summary-label-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.holders-summary-label-icon__svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.holders-summary-label-icon--profitable {
+  color: #4ade80;
+}
+
+.holders-summary-label-icon--breaking_even {
+  color: #60a5fa;
+}
+
+.holders-summary-label-icon--losing {
+  color: #f87171;
+}
+
+.holders-summary-label-icon--dead {
+  color: #fb923c;
+}
+
+.holders-summary-label-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.holders-summary-label-badge .token-badge__svg,
+.holders-summary-label-badge__svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.holders-summary-item--categorised .holders-summary-label-badge {
+  cursor: help;
 }
 
 .trades-summary-value {
@@ -2539,8 +2606,8 @@ button:not(.vybe-action-btn):disabled {
 
 #holdersTable th:nth-child(1),
 #holdersTable td:nth-child(1) {
-  width: 52px;
-  max-width: 52px;
+  width: 64px;
+  max-width: 64px;
 }
 
 #holdersTable th:nth-child(4),
@@ -2594,36 +2661,95 @@ button:not(.vybe-action-btn):disabled {
 .holders-rank-cell {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
-.holders-rank-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+.holders-rank-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.25rem;
+  padding-left: 2px;
+  border-radius: 4px;
+  border: 1px solid rgba(63, 63, 70, 0.45);
+  background: linear-gradient(155deg, rgba(28, 28, 34, 0.92) 0%, rgba(14, 14, 17, 0.98) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-.holders-rank-swatch--profitable {
-  background: #4ade80;
+.holders-rank-badge::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 4px 0 0 4px;
+  opacity: 0.95;
 }
 
-.holders-rank-swatch--breaking_even {
-  background: #60a5fa;
+.holders-rank-badge--profitable {
+  color: #4ade80;
 }
 
-.holders-rank-swatch--losing {
-  background: #f87171;
+.holders-rank-badge--profitable::before {
+  background: linear-gradient(180deg, #4ade80, #16a34a);
 }
 
-.holders-rank-swatch--dead {
-  background: #fb923c;
+.holders-rank-badge--breaking_even {
+  color: #60a5fa;
+}
+
+.holders-rank-badge--breaking_even::before {
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+}
+
+.holders-rank-badge--losing {
+  color: #f87171;
+}
+
+.holders-rank-badge--losing::before {
+  background: linear-gradient(180deg, #f87171, #dc2626);
+}
+
+.holders-rank-badge--dead {
+  color: #fb923c;
+}
+
+.holders-rank-badge--dead::before {
+  background: linear-gradient(180deg, #fb923c, #ea580c);
+}
+
+.holders-rank-badge__svg {
+  width: 17px;
+  height: 17px;
+  display: block;
 }
 
 .holders-rank-num {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+.holders-rank-num--profitable {
+  color: #4ade80;
+}
+
+.holders-rank-num--breaking_even {
+  color: #60a5fa;
+}
+
+.holders-rank-num--losing {
+  color: #f87171;
+}
+
+.holders-rank-num--dead {
+  color: #fb923c;
 }
 
 .holders-price-changes {

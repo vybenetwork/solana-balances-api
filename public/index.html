@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=45" />
+    <link rel="stylesheet" href="app.css?v=48" />
   </head>
   <body>
     <div class="container">
@@ -295,33 +295,37 @@
               <span class="trades-summary-value" id="holdersSummaryCount">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--profitable">
-              <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-dollar" aria-hidden="true"></span>Profitable</span>
+              <span class="trades-summary-label"><span data-holders-pie-rank="profitable" aria-hidden="true"></span>Profitable</span>
               <span class="trades-summary-value" id="holdersSummaryProfitable">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--breaking-even">
-              <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-scale" aria-hidden="true"></span>Breaking even</span>
+              <span class="trades-summary-label"><span data-holders-pie-rank="breaking_even" aria-hidden="true"></span>Breaking even</span>
               <span class="trades-summary-value" id="holdersSummaryBreakingEven">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--losing">
-              <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-sort" aria-hidden="true"></span>Losing value</span>
+              <span class="trades-summary-label"><span data-holders-pie-rank="losing" aria-hidden="true"></span>Losing value</span>
               <span class="trades-summary-value" id="holdersSummaryLosing">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--dead">
-              <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-info" aria-hidden="true"></span>Dead tokens</span>
+              <span class="trades-summary-label"><span data-holders-pie-rank="dead" aria-hidden="true"></span>Dead tokens</span>
               <span class="trades-summary-value" id="holdersSummaryDead">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--verified">
-              <span class="trades-summary-label"><span class="trades-summary-label-icon field-icon icon-user" aria-hidden="true"></span>Verified</span>
+              <span class="trades-summary-label">
+                <span class="holders-summary-label-badge" aria-hidden="true">
+                  <svg class="holders-summary-label-badge__svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="#2563eb" stroke="#60a5fa" stroke-width="1"/><path d="M4.5 8.2 6.8 10.5 11.5 5.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                Verified
+              </span>
               <span class="trades-summary-value" id="holdersSummaryVerified">0</span>
             </div>
             <div class="trades-summary-item holders-summary-item--categorised">
               <span class="trades-summary-label">
-                <span class="trades-summary-label-icon field-icon icon-tag" aria-hidden="true"></span>
-                Categorised
-                <span class="holders-summary-tip token-badge token-badge--info token-badge--has-tip" tabindex="0" aria-label="Category breakdown">
+                <span class="holders-summary-label-badge token-badge token-badge--info token-badge--has-tip" tabindex="0" aria-label="Category breakdown">
                   <svg class="token-badge__svg" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#71717a" stroke-width="1.2"/><path d="M8 7.2V11" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="5.1" r="0.75" fill="#a1a1aa"/></svg>
                   <span class="token-badge-tip" id="holdersSummaryCategorisedTip" role="tooltip">—</span>
                 </span>
+                Categorised
               </span>
               <span class="trades-summary-value" id="holdersSummaryCategorised">0</span>
             </div>
@@ -355,6 +359,6 @@
       </section>
     </div>
     <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=44"></script>
+    <script src="app.js?v=48"></script>
   </body>
 </html>

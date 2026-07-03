@@ -776,6 +776,43 @@ function classifyTokenPieChange(t) {
   return 'breaking_even';
 }
 
+const HOLDERS_PIE_RANK_ICONS = {
+  profitable:
+    '<path d="M2.5 11.5 6.5 7.5 9 10 13.5 4.5" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 4.5H13.5V7.5" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>',
+  breaking_even:
+    '<path d="M2.5 8h11" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/><path d="M5.5 6.15h5M5.5 9.85h5" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.55"/>',
+  losing:
+    '<path d="M2.5 4.5 6.5 8.5 9 6 13.5 11.5" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 11.5H13.5V8.5" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>',
+  dead:
+    '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.15" stroke-dasharray="2.2 2.2"/><path d="M5.5 8h5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>',
+};
+
+const HOLDERS_PIE_RANK_LABELS = {
+  profitable: 'Profitable',
+  breaking_even: 'Breaking even',
+  losing: 'Losing value',
+  dead: 'Dead token',
+};
+
+function holdersPieRankIconSvg(key, className = 'holders-pie-rank-icon__svg') {
+  const paths = HOLDERS_PIE_RANK_ICONS[key] || '';
+  return `<svg class="${className}" viewBox="0 0 16 16" aria-hidden="true">${paths}</svg>`;
+}
+
+function holdersRankBadgeHtml(key) {
+  const label = HOLDERS_PIE_RANK_LABELS[key] || key;
+  return `<span class="holders-rank-badge holders-rank-badge--${key}" title="${escapeHtmlAttr(label)}" aria-label="${escapeHtmlAttr(label)}">${holdersPieRankIconSvg(key, 'holders-rank-badge__svg')}</span>`;
+}
+
+function hydrateHoldersSummaryLabelIcons() {
+  document.querySelectorAll('[data-holders-pie-rank]').forEach((el) => {
+    const key = el.dataset.holdersPieRank;
+    if (!key || !HOLDERS_PIE_RANK_ICONS[key]) return;
+    el.innerHTML = holdersPieRankIconSvg(key, 'holders-summary-label-icon__svg');
+    el.classList.add('holders-summary-label-icon', `holders-summary-label-icon--${key}`);
+  });
+}
+
 function priceChange24hBuckets(tokens) {
   const buckets = {
     profitable: { usd: 0, count: 0 },
@@ -947,7 +984,7 @@ function renderTable(tokens, totalUsd) {
       const src = t.priceSource || (v > 0 ? 'Vybe list' : '—');
       const pieCat = classifyTokenPieChange(t);
       return `<tr class="holders-row holders-row--${pieCat}">
-        <td class="holders-rank-col"><div class="holders-rank-cell"><span class="holders-rank-swatch holders-rank-swatch--${pieCat}" aria-hidden="true"></span><span class="holders-rank-num">${i + 1}</span></div></td>
+        <td class="holders-rank-col"><div class="holders-rank-cell">${holdersRankBadgeHtml(pieCat)}<span class="holders-rank-num holders-rank-num--${pieCat}">${i + 1}</span></div></td>
         <td class="num holders-portfolio-col">${formatPortfolioPctColumnHtml(pct, v > 0)}</td>
         <td class="holders-change-col">${formatChangeColumnHtml(t)}</td>
         <td><div class="token-header">${iconHtml}<div class="token-header-text"><div class="symbol">${escapeHtmlText(t.symbol)}${tokenSymbolBadgesHtml(t)}</div><div class="name">${escapeHtmlText(t.name)}</div></div></div></td>
@@ -1019,6 +1056,7 @@ async function fetchBalances() {
 
 setChartsPlaceholder();
 renderWalletSummaryPlaceholder();
+hydrateHoldersSummaryLabelIcons();
 fetchAllBtn.addEventListener('click', () => fetchBalances());
 walletInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') fetchBalances();
