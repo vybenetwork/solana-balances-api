@@ -3482,6 +3482,8 @@ td .mono {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
+  min-height: 390px;
+  max-height: 390px;
 }
 
 .wallet-charts-row__col--usd-bands {
@@ -3572,6 +3574,8 @@ td .mono {
   border: 1px solid rgba(63, 63, 70, 0.9);
   border-radius: 10px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  min-height: 390px;
+  max-height: 390px;
 }
 
 .holders-dash-nested-supply-pie.token-supply-card::before {
