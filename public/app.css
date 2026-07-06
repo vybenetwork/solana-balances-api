@@ -1493,12 +1493,42 @@ body {
   transition: color 0.2s;
 }
 
+.holders-table-view-switch .trades-fetch-switch-option,
+.wallet-stats-view-switch .trades-fetch-switch-option {
+  display: inline-flex;
+  flex: 1;
+  padding-left: 8px;
+  padding-right: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #71717a;
+}
+
+.view-switch-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
 .trades-fetch-switch-input:not(:checked) + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="single"] {
   color: #e4e4e7;
 }
 
 .trades-fetch-switch-input:checked + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="paged"] {
   color: #e4e4e7;
+}
+
+.holders-table-view-switch .trades-fetch-switch-input:not(:checked) + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="single"],
+.holders-table-view-switch .trades-fetch-switch-input:checked + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="paged"] {
+  color: #ffffff;
+}
+
+.wallet-stats-view-switch .trades-fetch-switch-input:not(:checked) + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="pnl"],
+.wallet-stats-view-switch .trades-fetch-switch-input:checked + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="holdings"] {
+  color: #ffffff;
 }
 
 .trades-fetch-switch.trades-fetch-switch--locked {
@@ -5813,6 +5843,19 @@ html {
 
 .holders-table-view-switch.trades-fetch-switch {
   min-width: fit-content;
+}
+
+.holders-table-view-switch .trades-fetch-switch-track {
+  height: 2.2rem;
+  min-width: 17rem;
+}
+
+.holders-table-view-switch .trades-fetch-switch-option {
+  white-space: nowrap;
+}
+
+.wallet-stats-view-switch .trades-fetch-switch-track {
+  height: 2.2rem;
 }
 
 #walletStatsSection .section-header {
