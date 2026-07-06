@@ -217,6 +217,7 @@ function clearDonutPieOverlays(pieEl) {
     pieEl.querySelector('.token-supply-pie__hub')?.remove();
 }
 function mountDonutPieCenterHub(pieEl, options) {
+    if (!options) return;
     pieEl.querySelector('.token-supply-pie__hub')?.remove();
     const hub = document.createElement('div');
     hub.className = 'token-supply-pie__hub';
@@ -443,5 +444,5 @@ function mountDonutPieSliceLabelOverlay(pieEl, slicePcts, sliceSpecs) {
 }
 function mountDonutPieOverlays(pieEl, slicePcts, sliceSpecs, hub) {
     mountDonutPieSliceLabelOverlay(pieEl, slicePcts, sliceSpecs);
-    mountDonutPieCenterHub(pieEl, hub);
+    if (hub) mountDonutPieCenterHub(pieEl, hub);
 }

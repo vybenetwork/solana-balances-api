@@ -1123,17 +1123,20 @@ body {
 
 .field-control--logo-repair {
   gap: 0.45rem;
-  padding-left: 34px;
 }
 
 .field-control--logo-repair .trades-fetch-switch {
   flex-shrink: 0;
 }
 
-.field-control--logo-repair #topLogoRepairN {
-  min-width: 72px;
-  max-width: 72px;
-  padding-left: 0.55rem;
+.field-control--top-logo-n {
+  position: relative;
+}
+
+.field-control--top-logo-n #topLogoRepairN {
+  min-width: 82px;
+  max-width: 82px;
+  padding-left: 34px;
 }
 
 #topLogoRepairN:disabled {
@@ -1144,11 +1147,6 @@ body {
 #logoImgTimeoutSec {
   min-width: 124px;
   max-width: 124px;
-}
-
-#logoRepairTimeoutSec {
-  min-width: 110px;
-  max-width: 110px;
 }
 
 .field-control-input-suffix {
@@ -1459,7 +1457,7 @@ body {
   background: #27272a;
   border: 1px solid #3f3f46;
   position: relative;
-  min-width: 7.5rem;
+  min-width: 6.5rem;
 }
 
 .trades-fetch-switch-track::after {
@@ -1970,6 +1968,36 @@ button:not(.vybe-action-btn):disabled {
   color: #d4d4d8;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
+}
+
+.token-section-content .token-stat-row--tokenVol24h .token-stat-row-value,
+.token-section-content .token-stat-row--topPnlCohortVol .token-stat-row-value {
+  font-size: 0.65rem;
+  font-weight: 450;
+  line-height: 1.15;
+  color: #d4d4d8;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.token-section-content .token-stat-top-taxonomy-name {
+  display: block;
+  font-size: 0.72rem;
+  color: #d4d4d8;
+}
+
+.token-section-content .token-stat-top-taxonomy-meta {
+  display: block;
+  font-size: 0.65rem;
+  color: #71717a;
+}
+
+.token-stats-group--overview .token-stat-count-suffix,
+.token-stats-group--price .token-stat-count-suffix,
+.token-stats-group--supply .token-stat-count-suffix {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: #71717a;
 }
 
 .token-section-content .token-stat-usd-value {
@@ -4544,4 +4572,1144 @@ td .mono {
 .holders-category-sub {
   font-size: 0.72rem;
   color: #a1a1aa;
+}.wallet-top-traders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.wallet-top-trader-card .token-stats {
+  gap: 0.45rem 1rem;
+}
+
+.wallet-top-trader-card .token-stats dt {
+  white-space: nowrap;
+}
+
+.wallet-top-trader-card .token-stats dd {
+  word-break: break-word;
+}
+
+.wallet-pnl-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.wallet-pnl-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.wallet-pnl-layout {
+  display: grid;
+  grid-template-columns: 2fr minmax(300px, 380px);
+  gap: 1.1rem;
+  align-items: stretch;
+}
+
+.wallet-pnl-trend-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.wallet-pnl-trend-col > .wallet-pnl-card--pnl-trading {
+  flex: 0 0 auto;
+}
+
+.wallet-pnl-trend-col > .wallet-pnl-card--trend {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 410px;
+}
+
+.wallet-pnl-card {
+  position: relative;
+  border-radius: 10px;
+  background: linear-gradient(165deg, #141418 0%, #0c0c0f 55%, #0a0a0c 100%);
+  border: 1px solid #2a2a32;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.wallet-pnl-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 10px 0 0 10px;
+  opacity: 0.9;
+}
+
+.wallet-pnl-card--profile::before {
+  background: linear-gradient(180deg, #60a5fa, #818cf8);
+}
+
+.wallet-pnl-card--pnl-trading::before {
+  background: linear-gradient(180deg, #34d399, #2dd4bf 40%, #fbbf24 72%, #f97316);
+}
+
+.wallet-pnl-card--highlights::before {
+  background: linear-gradient(180deg, #a78bfa, #ec4899 45%, #f43f5e);
+}
+
+.wallet-pnl-card--trend::before {
+  background: linear-gradient(180deg, #22d3ee, #3b82f6);
+}
+
+.wallet-pnl-card--assets::before {
+  background: linear-gradient(180deg, #94a3b8, #64748b);
+}
+
+.wallet-pnl-sections > .wallet-pnl-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wallet-pnl-sections > .wallet-pnl-card .token-stats-group-title {
+  margin: 0;
+}
+
+.wallet-pnl-pie-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  min-height: 0;
+}
+
+.wallet-pnl-pie-stack > .wallet-pnl-card--pie {
+  min-height: 0;
+}
+
+.wallet-pnl-card--pie::before {
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+}
+
+.wallet-pnl-card--pie.token-stats-group {
+  padding: 1.05rem 1.15rem 1.2rem;
+}
+
+.wallet-pnl-card--pie .token-stats-group-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.wallet-pnl-card--pie .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 13px;
+}
+
+.wallet-pnl-card--assets .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.wallet-pnl-card--profile .token-stats-group-title span,
+.wallet-pnl-card--highlights .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.wallet-pnl-pie-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, clamp(160px, 19vw, 220px)) minmax(0, 1fr);
+  gap: 1rem 1.15rem;
+  align-items: center;
+  padding-top: 0.1rem;
+}
+
+/* Wallet donuts: reuse token-mode `.token-supply-pie` (labels + hub). Default: same vw clamps as top-traders repo. */
+.wallet-pnl-pie-chart.token-supply-pie {
+  width: clamp(150px, 18vw, 210px);
+  flex-shrink: 0;
+}
+
+/* Narrow main column (e.g. 900px container): vw is viewport-wide so donuts look huge — tie size to the pie card instead. */
+@supports (width: 1cqw) {
+  .wallet-pnl-card.wallet-pnl-card--pie {
+    container-type: inline-size;
+  }
+
+  .wallet-pnl-pie-wrap {
+    grid-template-columns: minmax(0, min(32cqw, 7.875rem)) minmax(0, 1fr);
+  }
+
+  .wallet-pnl-pie-chart.token-supply-pie {
+    width: min(30cqw, 9.875rem);
+    max-width: 100%;
+  }
+}
+
+.wallet-pnl-card.wallet-pnl-card--pie {
+  overflow: visible;
+}
+
+/* Wallet donut legends: 1 row × 2 columns; each cell is a tier-card with stacked metrics */
+.wallet-pnl-pie-legend.wallet-pnl-pie-legend--tier-match {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.65rem;
+  row-gap: 0.55rem;
+  align-items: stretch;
+  min-width: 0;
+  font-size: 0.72rem;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-supply-legend-item {
+  align-items: stretch;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card--wallet-pie-legend {
+  padding: 0.48rem 0.55rem 0.52rem;
+  height: 100%;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card__title--wallet-pie {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card__metrics--wallet-pie-expanded {
+  gap: 0.32rem;
+}
+
+@media (max-width: 520px) {
+  .wallet-pnl-pie-legend.wallet-pnl-pie-legend--tier-match {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wallet-pnl-pie-empty {
+  margin: 0.25rem 0 0;
+  color: #71717a;
+  font-size: 0.78rem;
+}
+
+.wallet-pnl-kv {
+  gap: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+.wallet-pnl-kv dt {
+  color: #71717a;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  align-self: center;
+}
+
+.wallet-pnl-kv dd {
+  color: #e4e4e7;
+  font-weight: 500;
+}
+
+.wallet-fetch-slot,
+.token-fetch-slot {
+  display: flex;
+  align-items: flex-end;
+}
+
+.wallet-fetch-slot .inline-row-actions,
+.token-fetch-slot .inline-row-actions {
+  margin-bottom: 0;
+}
+
+.wallet-pnl-profile-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  margin-top: 0.15rem;
+}
+
+.wallet-pnl-profile-avatar-wrap {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.wallet-pnl-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 32px;
+  object-fit: cover;
+  display: block;
+  border: 2px solid rgba(96, 165, 250, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.wallet-pnl-profile-kv {
+  align-self: center;
+}
+
+.wallet-pnl-profile-value-emphasis {
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.wallet-pnl-performance-body,
+.wallet-pnl-trading-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-pnl-pnl-trading-lede {
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #71717a;
+}
+
+.wallet-pnl-trading-lede {
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #71717a;
+}
+
+.wallet-pnl-pnl-trading-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-pnl-metric-hero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.wallet-pnl-metric-hero-item {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid #2e2e38;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.wallet-pnl-metric-hero-item--realized {
+  border-color: rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.06);
+}
+
+.wallet-pnl-metric-hero-item--unrealized {
+  border-color: rgba(251, 191, 36, 0.25);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.05);
+}
+
+.wallet-pnl-metric-hero-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #71717a;
+}
+
+.wallet-pnl-metric-hero-value {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.wallet-pnl-metric-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.wallet-pnl-metric-row--tight {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.wallet-pnl-metric-row--single {
+  grid-template-columns: minmax(0, 11rem);
+  justify-content: flex-start;
+}
+
+.wallet-pnl-metric-chip {
+  padding: 0.5rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid #2c2c34;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.wallet-pnl-metric-chip-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #71717a;
+}
+
+.wallet-pnl-metric-chip-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #e4e4e7;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.wallet-pnl-metric-chip-value .wallet-pnl-trade-chip-count {
+  font-weight: 600;
+}
+
+.wallet-pnl-metric-chip-value .wallet-pnl-trade-chip-avg {
+  font-weight: 400;
+}
+
+.wallet-pnl-metric-chip--pos {
+  border-color: rgba(52, 211, 153, 0.28);
+  background: linear-gradient(165deg, rgba(16, 185, 129, 0.08), rgba(0, 0, 0, 0.2));
+}
+
+.wallet-pnl-metric-chip--neg {
+  border-color: rgba(251, 113, 133, 0.28);
+  background: linear-gradient(165deg, rgba(244, 63, 94, 0.08), rgba(0, 0, 0, 0.2));
+}
+
+.wallet-pnl-trend-lede {
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+  font-weight: 400;
+  max-width: 52ch;
+}
+
+.wallet-pnl-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.wallet-pnl-highlight-card {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 7.5rem;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  overflow: hidden;
+}
+
+.wallet-pnl-highlight-card--best {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.35) 100%);
+  border-color: rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.wallet-pnl-highlight-card--worst {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.14) 0%, rgba(88, 28, 28, 0.38) 100%);
+  border-color: rgba(251, 113, 133, 0.35);
+  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.wallet-pnl-highlight-card--empty {
+  opacity: 1;
+}
+
+.wallet-pnl-highlight-ribbon {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.wallet-pnl-highlight-card--best .wallet-pnl-highlight-ribbon {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.wallet-pnl-highlight-card--worst .wallet-pnl-highlight-ribbon {
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.2);
+  border: 1px solid rgba(251, 113, 133, 0.3);
+}
+
+.wallet-pnl-highlight-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.wallet-pnl-highlight-card--empty .wallet-pnl-highlight-body {
+  justify-content: center;
+}
+
+.wallet-pnl-highlight-token {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.wallet-pnl-highlight-token .wallet-token-ref {
+  gap: 0.5rem;
+}
+
+.wallet-pnl-highlight-card .wallet-logo-avatar {
+  width: 32px;
+  height: 32px;
+  border-width: 2px;
+}
+
+.wallet-pnl-highlight-mint {
+  font-size: 0.65rem;
+  color: #71717a;
+}
+
+.wallet-pnl-highlight-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: auto;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.wallet-pnl-highlight-metric-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #71717a;
+  font-weight: 600;
+}
+
+.wallet-pnl-highlight-metric-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.wallet-pnl-highlight-pnl--positive {
+  color: #86efac;
+  text-shadow: 0 0 24px rgba(52, 211, 153, 0.25);
+}
+
+.wallet-pnl-highlight-pnl--negative {
+  color: #fda4af;
+  text-shadow: 0 0 24px rgba(251, 113, 133, 0.2);
+}
+
+.wallet-pnl-highlight-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #71717a;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.wallet-pnl-trend-table-wrap {
+  flex: 1;
+  min-height: 0;
+  max-height: fit-content !important;
+  overflow: auto;
+  border-radius: 6px;
+  border: 1px solid #27272a;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.wallet-pnl-card--trend .wallet-pnl-trend-empty-msg {
+  margin: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  color: #71717a;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.wallet-pnl-assets-empty-msg {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #a1a1aa;
+  line-height: 1.45;
+}
+
+.wallet-trend-table {
+  font-size: 0.96rem;
+}
+
+.wallet-trend-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #12121a;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  border-bottom: 1px solid #2e2e3a;
+}
+
+.wallet-trend-table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.wallet-trend-table tbody tr:hover td {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.wallet-trend-table td {
+  border-bottom-color: #23232b;
+  padding: 0.42rem 0.65rem;
+}
+
+.wallet-pnl-token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.wallet-pnl-token-card .token-stats {
+  gap: 0.4rem 1rem;
+}
+
+.wallet-pnl-empty {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+}
+
+.wallet-logo-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  object-fit: cover;
+  display: inline-block;
+  border: 1px solid #3f3f46;
+  vertical-align: middle;
+}
+
+.wallet-token-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.wallet-token-highlight-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.wallet-token-highlight-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.wallet-token-highlight-pnl {
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+.wallet-token-highlight-sublist {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.wallet-token-highlight-sublist li {
+  margin: 0.08rem 0;
+  overflow-wrap: anywhere;
+}
+
+.wallet-token-highlight-sublist li > span {
+  color: #a1a1aa;
+}
+
+.wallet-token-highlight-pnl--positive {
+  color: #86efac;
+}
+
+.wallet-token-highlight-pnl--negative {
+  color: #fca5a5;
+}
+
+.wallet-assets-table-wrap {
+  max-height: 28rem;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+.wallet-assets-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #18181b;
+  font-size: 0.56rem;
+  line-height: 1.1;
+}
+
+.wallet-assets-table {
+  min-width: 820px;
+  table-layout: fixed;
+}
+
+.wallet-assets-table th,
+.wallet-assets-table td {
+  padding: 0.22rem 0.26rem;
+  font-size: 0.66rem;
+}
+
+.wallet-assets-table th:nth-child(1),
+.wallet-assets-table td:nth-child(1) {
+  width: 24px !important;
+  min-width: 23px !important;
+  max-width: 24px !important;
+  padding-left: 0.05rem !important;
+  padding-right: 0.15rem !important;
+}
+
+.wallet-assets-table th:nth-child(2),
+.wallet-assets-table td:nth-child(2) {
+  width: 92px;
+  max-width: 92px;
+}
+
+.wallet-assets-table th:nth-child(3),
+.wallet-assets-table td:nth-child(3) {
+  width: 76px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.wallet-assets-table th:nth-child(4),
+.wallet-assets-table td:nth-child(4) {
+  width: 42px;
+  text-align: center;
+}
+
+.wallet-assets-table th:nth-child(5),
+.wallet-assets-table td:nth-child(5),
+.wallet-assets-table th:nth-child(6),
+.wallet-assets-table td:nth-child(6) {
+  width: 62px;
+  text-align: center;
+}
+
+.wallet-assets-table th:nth-child(7),
+.wallet-assets-table td:nth-child(7),
+.wallet-assets-table th:nth-child(8),
+.wallet-assets-table td:nth-child(8) {
+  width: 50px;
+  text-align: center;
+}
+
+.wallet-assets-table th:nth-child(9),
+.wallet-assets-table td:nth-child(9),
+.wallet-assets-table th:nth-child(10),
+.wallet-assets-table td:nth-child(10) {
+  width: 64px;
+  text-align: center;
+}
+
+.wallet-assets-table th:nth-child(11),
+.wallet-assets-table td:nth-child(11) {
+  width: 48px;
+  text-align: center;
+}
+
+.wallet-assets-table th:nth-child(12),
+.wallet-assets-table td:nth-child(12) {
+  width: 86px;
+  text-align: center;
+}
+
+.wallet-asset-gain {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.08rem 0.42rem;
+  border-radius: 4px;
+  border: 2px solid currentColor;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-asset-buysell-amt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+
+.wallet-amt-stack-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  justify-content: center;
+}
+
+.wallet-amt-stack-value--buy {
+  color: #22c55e;
+}
+
+.wallet-amt-stack-value--sell {
+  color: #ef4444;
+}
+
+.wallet-amt-side-icon {
+  display: inline-block;
+  font-size: 0.52rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wallet-amt-side-icon--buy {
+  color: #22c55e;
+}
+
+.wallet-amt-side-icon--sell {
+  color: #ef4444;
+}
+
+.wallet-asset-icon-cell {
+  width: 10px;
+  min-width: 10px;
+  max-width: 10px;
+  padding-left: 0.1rem !important;
+  padding-right: 0.1rem !important;
+  text-align: center;
+  overflow: hidden;
+}
+
+.wallet-asset-mint {
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.wallet-asset-tx-col,
+.wallet-asset-tx-cell {
+  min-width: 72px;
+}
+
+.wallet-tx-datetime {
+  font-size: 0.56rem;
+  color: #d4d4d8;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.wallet-tx-link {
+  color: #60a5fa;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.wallet-tx-link:hover {
+  text-decoration: underline;
+}
+
+.wallet-tx-sig {
+  color: #a1a1aa;
+  font-size: 0.36rem;
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.05;
+}
+
+.wallet-tx-popup-icon {
+  margin-left: 0.2rem;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.wallet-tx-link.wallet-tx-tone--buy,
+.wallet-tx-sig.wallet-tx-tone--buy {
+  color: #86efac;
+}
+
+.wallet-tx-link.wallet-tx-tone--sell,
+.wallet-tx-sig.wallet-tx-tone--sell {
+  color: #fca5a5;
+}
+
+.wallet-amt-vol-usd {
+  color: #86efac;
+}
+
+.wallet-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.06rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid #52525b;
+  color: #d4d4d8;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+
+.wallet-status-badge--open {
+  border-color: #22c55e;
+  color: #86efac;
+}
+
+.wallet-status-badge--closed {
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.trades-summary-markets {
+  min-width: 0;
+}
+
+.trades-summary-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.75rem 0;
+}
+
+.trades-summary-table {
+  font-size: 0.85rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #27272a;
+}
+
+th {
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+tr:hover td {
+  background: #27272a;
+}
+
+.holders-section a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.holders-section a:hover {
+  text-decoration: none;
+}
+
+td .mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error.panel {
+  border-color: #7f1d1d;
+  background: #1c1917;
+}
+
+#errorText {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Numeric columns: right-align header and cells (related wallets, holders) */
+#topTradersTable th:nth-child(4),
+#topTradersTable td:nth-child(4),
+#topTradersTable th:nth-child(5),
+#topTradersTable td:nth-child(5),
+#topTradersTable th:nth-child(6),
+#topTradersTable td:nth-child(6) {
+  text-align: right !important;
+}
+
+#holdersTable th:nth-child(3),
+#holdersTable td:nth-child(3) {
+  text-align: left !important;
+}
+
+#holdersTable th:nth-child(4),
+#holdersTable td:nth-child(4),
+#holdersTable th:nth-child(5),
+#holdersTable td:nth-child(5) {
+  text-align: right !important;
+}
+
+#tokenTopPnlTable th:nth-child(3),
+#tokenTopPnlTable td:nth-child(3),
+#tokenTopPnlTable th:nth-child(4),
+#tokenTopPnlTable td:nth-child(4),
+#tokenTopPnlTable th:nth-child(5),
+#tokenTopPnlTable td:nth-child(5),
+#tokenTopPnlTable th:nth-child(6),
+#tokenTopPnlTable td:nth-child(6),
+#tokenTopPnlTable th:nth-child(7),
+#tokenTopPnlTable td:nth-child(7),
+#tokenTopPnlTable th:nth-child(8),
+#tokenTopPnlTable td:nth-child(8) {
+  text-align: right !important;
+}
+
+.usd-tone {
+  font-variant-numeric: tabular-nums;
+}
+
+.usd-tone--positive {
+  color: #86efac;
+}
+
+.usd-tone--neutral {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.usd-tone--negative {
+  color: #fca5a5;
+}
+
+.trade-count-heat {
+  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 120)) 85% 66%);
+  font-weight: 600;
+}
+
+/* Scrollbar: black track, grey thumb */
+html {
+  overflow-x: auto;
+  min-width: 1150px;
+  scrollbar-color: #71717a #000000; /* thumb, track */
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #000000;
+  border-radius: 999px;
+  margin: 4px 0; /* let rounded ends show */
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #71717a;
+  border-radius: 999px;
+}
+
+.construction-callout {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  background: rgba(234, 179, 8, 0.1);
+  color: #fde68a;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.construction-callout strong {
+  color: #fef08a;
+}
+
+/* Endpoint mode: lock + realtime/historical, inline left of wallet search */
+.endpoint-mode-field.endpoint-mode-switcher-disabled,
+.endpoint-mode-field.endpoint-mode-switcher-disabled * {
+  cursor: not-allowed;
+}
+
+.site-header__endpoint-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #a1a1aa;
+  text-transform: none;
+  letter-spacing: normal;
+  opacity: 1;
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.holders-section .section-header {
+  justify-content: flex-start;
+}
+
+.holders-table-view-switch.trades-fetch-switch {
+  min-width: 11.5rem;
+}
+
+.field--wallet-pnl-fetch .trades-fetch-switch {
+  min-width: 6.5rem;
+}
+
+.wallet-assets-table-panel {
+  margin-top: 0;
 }

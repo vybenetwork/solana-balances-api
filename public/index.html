@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=88" />
+    <link rel="stylesheet" href="app.css?v=97" />
   </head>
   <body>
     <div class="container">
@@ -195,14 +195,13 @@
           <div class="field field--top-logo-repair">
             <label for="topLogoRepairN">
               <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
-              Top logo repair
+              Missing Logo Repair Fallback
             </label>
             <div class="field-control field-control--logo-repair">
-              <span class="field-icon icon-grid" aria-hidden="true"></span>
               <label
                 class="trades-fetch-switch"
                 id="topLogoRepairSwitchLabel"
-                title="Enable proactive top-logo repair on load"
+                title="Enable missing-logo repair fallback on load"
               >
                 <input type="checkbox" id="topLogoRepairEnabled" class="trades-fetch-switch-input" checked />
                 <span class="trades-fetch-switch-track">
@@ -210,14 +209,17 @@
                   <span class="trades-fetch-switch-option" data-value="paged">On</span>
                 </span>
               </label>
-              <input
-                type="number"
-                id="topLogoRepairN"
-                min="1"
-                max="20"
-                value="10"
-                title="On load, only the top N holdings by USD value missing logos get proactive repair"
-              />
+              <div class="field-control field-control--top-logo-n">
+                <span class="field-icon icon-grid" aria-hidden="true"></span>
+                <input
+                  type="number"
+                  id="topLogoRepairN"
+                  min="1"
+                  max="20"
+                  value="10"
+                  title="On load, only the top N holdings by USD value missing logos get proactive repair"
+                />
+              </div>
             </div>
           </div>
 
@@ -233,29 +235,30 @@
                 id="logoImgTimeoutSec"
                 min="3"
                 max="30"
-                value="12"
-                title="If a token image does not load in time, trigger repair"
+                value="10"
+                title="Timeout for logo image load and GET /api/token/:mint/logo repair"
               />
               <span class="input-suffix" aria-hidden="true">sec</span>
             </div>
           </div>
 
-          <div class="field field--logo-repair-timeout">
-            <label for="logoRepairTimeoutSec">
-              <span class="label-icon field-icon icon-scale" aria-hidden="true"></span>
-              Repair Timeout
+          <div class="field field--wallet-pnl-fetch">
+            <label for="walletPnl7dEnabled">
+              <span class="label-icon field-icon icon-chart" aria-hidden="true"></span>
+              7d Wallet PnL
             </label>
-            <div class="field-control field-control-input-suffix">
-              <span class="field-icon icon-scale" aria-hidden="true"></span>
-              <input
-                type="number"
-                id="logoRepairTimeoutSec"
-                min="3"
-                max="20"
-                value="15"
-                title="Timeout for GET /api/token/:mint/logo"
-              />
-              <span class="input-suffix" aria-hidden="true">sec</span>
+            <div class="field-control field-control--logo-repair">
+              <label
+                class="trades-fetch-switch"
+                id="walletPnl7dSwitchLabel"
+                title="Fetch 7d wallet PnL and related-wallets dashboard on load"
+              >
+                <input type="checkbox" id="walletPnl7dEnabled" class="trades-fetch-switch-input" checked />
+                <span class="trades-fetch-switch-track">
+                  <span class="trades-fetch-switch-option" data-value="single">Off</span>
+                  <span class="trades-fetch-switch-option" data-value="paged">On</span>
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -295,6 +298,24 @@
             </aside>
           </div>
           <div class="token-stats-groups" id="walletSummaryStats"></div>
+        </div>
+      </section>
+
+      <section class="section-card section-card--traders top-traders-section panel" id="relatedWalletsSection">
+        <div class="section-header">
+          <div class="section-header-left">
+            <span class="section-header__marker" aria-hidden="true"></span>
+            <h2 class="section-header__title" id="relatedWalletsTitle">Related Wallets (By Realized PnL, 7d)</h2>
+            <div class="section-loading" id="walletPnlLoading" hidden aria-hidden="true">
+              <span class="loading-spinner"></span>
+              <span class="loading-text">Loading…</span>
+            </div>
+          </div>
+          <span class="section-error" id="walletPnlError" hidden aria-hidden="true"></span>
+        </div>
+        <div class="top-traders-content" id="relatedWalletsContentWrap">
+          <div class="section-lede meta" id="walletPnlMeta">—</div>
+          <div class="wallet-pnl-details" id="walletPnlDetails"></div>
         </div>
       </section>
 
@@ -348,11 +369,24 @@
         <div class="section-header">
           <div class="section-header-left">
             <span class="section-header__marker" aria-hidden="true"></span>
-            <h2 class="section-header__title">Token Holdings</h2>
+            <h2 class="section-header__title" id="holdersSectionTitle">Token Holdings</h2>
             <div class="section-loading" id="holdersLoading" hidden aria-hidden="true">
               <span class="loading-spinner"></span>
               <span class="loading-text">Loading…</span>
             </div>
+          </div>
+          <div class="section-header-right">
+            <label
+              class="trades-fetch-switch holders-table-view-switch"
+              id="holdersTableViewSwitchLabel"
+              title="Switch between token holdings and 7d PnL per-token table"
+            >
+              <input type="checkbox" id="holdersTableViewSwitch" class="trades-fetch-switch-input" />
+              <span class="trades-fetch-switch-track">
+                <span class="trades-fetch-switch-option" data-value="single">Holdings</span>
+                <span class="trades-fetch-switch-option" data-value="paged">PnL</span>
+              </span>
+            </label>
           </div>
           <span class="section-error" id="holdersError" hidden aria-hidden="true"></span>
         </div>
@@ -397,7 +431,7 @@
               <span class="trades-summary-value" id="holdersSummaryDead">0</span>
             </div>
           </div>
-          <div class="table-wrap table-wrap--scroll">
+          <div class="table-wrap table-wrap--scroll" id="holdersTableWrap">
             <table id="holdersTable">
               <thead>
                 <tr>
@@ -417,6 +451,27 @@
               <tbody id="holdersBody"></tbody>
             </table>
           </div>
+          <div class="table-wrap table-wrap--scroll wallet-assets-table-panel" id="walletPnlTableWrap" hidden>
+            <table class="wallet-assets-table" id="walletPnlAssetsTable">
+              <thead>
+                <tr>
+                  <th class="wallet-assets-th-icon" scope="col" aria-label="Icon"></th>
+                  <th>Asset</th>
+                  <th>Buy/Sell Amt</th>
+                  <th>Status</th>
+                  <th>Real. PnL</th>
+                  <th>Unreal. PnL</th>
+                  <th>Buys</th>
+                  <th>Sells</th>
+                  <th>Buy vol</th>
+                  <th>Sell vol</th>
+                  <th>Gain</th>
+                  <th>Latest TX</th>
+                </tr>
+              </thead>
+              <tbody id="walletPnlAssetsBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -425,7 +480,9 @@
         <pre id="errorText"></pre>
       </section>
     </div>
-    <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=90"></script>
+    <script src="charts-pie.js?v=2"></script>
+    <script src="wallet-pnl-section.js?v=4"></script>
+    <script src="wallet-pnl-table.js?v=2"></script>
+    <script src="app.js?v=97"></script>
   </body>
 </html>

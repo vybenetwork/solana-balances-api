@@ -32,7 +32,6 @@ const limitSelect = document.getElementById('limit');
 const topLogoRepairEnabledInput = document.getElementById('topLogoRepairEnabled');
 const topLogoRepairNInput = document.getElementById('topLogoRepairN');
 const logoImgTimeoutSecInput = document.getElementById('logoImgTimeoutSec');
-const logoRepairTimeoutSecInput = document.getElementById('logoRepairTimeoutSec');
 const fetchAllBtn = document.getElementById('fetchAll');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const walletSummaryLabel = document.getElementById('walletSummaryLabel');
@@ -58,6 +57,11 @@ const holdersSummaryVerified = document.getElementById('holdersSummaryVerified')
 const holdersSummaryCategorised = document.getElementById('holdersSummaryCategorised');
 const holdersSummaryCategorisedTip = document.getElementById('holdersSummaryCategorisedTip');
 const holdersBody = document.getElementById('holdersBody');
+const holdersSectionTitle = document.getElementById('holdersSectionTitle');
+const holdersTableViewSwitch = document.getElementById('holdersTableViewSwitch');
+const holdersTableWrap = document.getElementById('holdersTableWrap');
+const walletPnlTableWrap = document.getElementById('walletPnlTableWrap');
+const holdersSummaryGrid = document.getElementById('holdersSummary');
 const errorSection = document.getElementById('errorSection');
 const errorText = document.getElementById('errorText');
 
@@ -65,8 +69,7 @@ let lastTokens = [];
 const TOKEN_LOGO_PLACEHOLDER = '/token-placeholder.png';
 const LOGO_SETTINGS_DEFAULTS = {
   topLogoRepairN: { min: 1, max: 20, fallback: 10 },
-  logoImgTimeoutSec: { min: 3, max: 30, fallback: 12 },
-  logoRepairTimeoutSec: { min: 3, max: 20, fallback: 15 },
+  logoImgTimeoutSec: { min: 3, max: 30, fallback: 10 },
 };
 const logoLoadingMints = new Set();
 const logoRepairInFlight = new Set();
@@ -92,9 +95,7 @@ function getLogoImgTimeoutMs() {
 }
 
 function getLogoRepairTimeoutMs() {
-  return (
-    clampLogoSetting(logoRepairTimeoutSecInput?.value, LOGO_SETTINGS_DEFAULTS.logoRepairTimeoutSec) * 1000
-  );
+  return getLogoImgTimeoutMs();
 }
 
 function syncTopLogoRepairFieldState() {
@@ -113,7 +114,6 @@ function initLogoRepairSettings() {
   const boundInputs = [
     [topLogoRepairNInput, LOGO_SETTINGS_DEFAULTS.topLogoRepairN],
     [logoImgTimeoutSecInput, LOGO_SETTINGS_DEFAULTS.logoImgTimeoutSec],
-    [logoRepairTimeoutSecInput, LOGO_SETTINGS_DEFAULTS.logoRepairTimeoutSec],
   ];
   for (const [input, bounds] of boundInputs) {
     input?.addEventListener('change', () => clampLogoSettingInput(input, bounds));
@@ -492,6 +492,8 @@ function aggregateWalletTaxonomy(tokens) {
     uniqueCategories: categories.size,
     uniqueSubcategories: subcategories.size,
     labeledCount,
+    topCategory: topCat ? { name: topCat[0], count: topCat[1].count, usd: topCat[1].usd } : null,
+    topSubcategory: topSub ? { name: topSub[0], count: topSub[1].count, usd: topSub[1].usd } : null,
     topCategoryLine: topCat
       ? `${topCat[0]} · ${topCat[1].count} token(s) · ${formatUsd(topCat[1].usd)}`
       : '—',
@@ -499,6 +501,28 @@ function aggregateWalletTaxonomy(tokens) {
       ? `${topSub[0]} · ${topSub[1].count} token(s) · ${formatUsd(topSub[1].usd)}`
       : '—',
   };
+}
+
+function formatTopTaxonomyStatHtml(entry) {
+  if (!entry) return escapeHtmlText('—');
+  const tokenWord = entry.count === 1 ? 'token' : 'tokens';
+  const meta = `${entry.count.toLocaleString()} ${tokenWord} · ${formatUsd(entry.usd)}`;
+  return `<span class="token-stat-top-taxonomy-name">${escapeHtmlText(entry.name)}</span><span class="token-stat-top-taxonomy-meta">${escapeHtmlText(meta)}</span>`;
+}
+
+function formatOverviewTokenCountHtml(count) {
+  if (count == null) return escapeHtmlText('—');
+  const n = Number(count);
+  if (!Number.isFinite(n)) return escapeHtmlText('—');
+  const word = n === 1 ? 'Token' : 'Tokens';
+  return `${escapeHtmlText(n.toLocaleString())} <span class="token-stat-count-suffix">${escapeHtmlText(word)}</span>`;
+}
+
+function formatOverviewCountSuffixHtml(count, suffix) {
+  if (count == null) return escapeHtmlText('—');
+  const n = Number(count);
+  if (!Number.isFinite(n)) return escapeHtmlText('—');
+  return `${escapeHtmlText(n.toLocaleString())} <span class="token-stat-count-suffix">${escapeHtmlText(suffix)}</span>`;
 }
 
 function iconUrl(item) {
@@ -778,6 +802,13 @@ function walletStatUsdHtml(value) {
   return `<span class="token-stat-usd-value">${escapeHtmlText(formatUsd(value))}</span>`;
 }
 
+function walletStatUsdWithTotalHtml(value) {
+  if (value == null) return escapeHtmlText('—');
+  const n = Number(value);
+  if (!Number.isFinite(n)) return escapeHtmlText('—');
+  return `<span class="token-stat-usd-value">${escapeHtmlText(formatUsd(n))}</span> <span class="token-stat-count-suffix">Total</span>`;
+}
+
 function walletStatRowHtml(row) {
   const icon = WALLET_STAT_ROW_ICONS[row.key];
   const aria = escapeHtmlAttr(row.label);
@@ -821,10 +852,7 @@ function buildWalletSummarySections(data) {
           {
             key: 'category',
             label: 'Total Holdings Loaded',
-            valueHtml:
-              data.tokensCount == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(String(data.tokensCount)),
+            valueHtml: formatOverviewTokenCountHtml(data.tokensCount),
           },
         ],
       },
@@ -834,16 +862,12 @@ function buildWalletSummarySections(data) {
           {
             key: 'verified',
             label: 'Verified',
-            valueHtml:
-              data.verified == null ? escapeHtmlText('—') : escapeHtmlText(String(data.verified)),
+            valueHtml: formatOverviewTokenCountHtml(data.verified),
           },
           {
             key: 'price1d',
             label: 'Unverified',
-            valueHtml:
-              data.unverified == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(String(data.unverified)),
+            valueHtml: formatOverviewTokenCountHtml(data.unverified),
           },
         ],
       },
@@ -855,14 +879,13 @@ function buildWalletSummarySections(data) {
     theme: 'price',
     rowsLayout: '2col',
     rows: [
-      { key: 'priceUsd', label: 'Est. total USD', valueHtml: walletStatUsdHtml(data.totalUsd) },
-      { key: 'marketCap', label: 'Verified USD', valueHtml: walletStatUsdHtml(data.verifiedUsd) },
-      { key: 'price1d', label: 'Unverified USD', valueHtml: walletStatUsdHtml(data.unverifiedUsd) },
+      { key: 'priceUsd', label: 'Estimated USD', valueHtml: walletStatUsdWithTotalHtml(data.totalUsd) },
+      { key: 'marketCap', label: 'Verified USD', valueHtml: walletStatUsdWithTotalHtml(data.verifiedUsd) },
+      { key: 'price1d', label: 'Unverified USD', valueHtml: walletStatUsdWithTotalHtml(data.unverifiedUsd) },
       {
         key: 'price7d',
-        label: 'Unpriced rows',
-        valueHtml:
-          data.unpricedCount == null ? escapeHtmlText('—') : escapeHtmlText(String(data.unpricedCount)),
+        label: 'Unpriced USD',
+        valueHtml: walletStatUsdWithTotalHtml(data.unpricedUsd),
       },
     ],
   };
@@ -877,18 +900,12 @@ function buildWalletSummarySections(data) {
           {
             key: 'supply',
             label: 'Unique categories',
-            valueHtml:
-              data.uniqueCategories == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(String(data.uniqueCategories)),
+            valueHtml: formatOverviewCountSuffixHtml(data.uniqueCategories, 'Categories'),
           },
           {
             key: 'usdVol24h',
             label: 'Unique subcategories',
-            valueHtml:
-              data.uniqueSubcategories == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(String(data.uniqueSubcategories)),
+            valueHtml: formatOverviewCountSuffixHtml(data.uniqueSubcategories, 'Subcategories'),
           },
         ],
       },
@@ -898,18 +915,12 @@ function buildWalletSummarySections(data) {
           {
             key: 'tokenVol24h',
             label: 'Top category',
-            valueHtml:
-              data.topCategoryLine == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(data.topCategoryLine),
+            valueHtml: formatTopTaxonomyStatHtml(data.topCategory),
           },
           {
             key: 'topPnlCohortVol',
             label: 'Top subcategory',
-            valueHtml:
-              data.topSubcategoryLine == null
-                ? escapeHtmlText('—')
-                : escapeHtmlText(data.topSubcategoryLine),
+            valueHtml: formatTopTaxonomyStatHtml(data.topSubcategory),
           },
         ],
       },
@@ -929,10 +940,11 @@ function buildWalletSummaryPlaceholderHtml() {
     verifiedUsd: null,
     unverifiedUsd: null,
     unpricedCount: null,
+    unpricedUsd: null,
     uniqueCategories: null,
     uniqueSubcategories: null,
-    topCategoryLine: null,
-    topSubcategoryLine: null,
+    topCategory: null,
+    topSubcategory: null,
   });
 }
 
@@ -1233,6 +1245,7 @@ function renderSummaryStats(tokens, wallet, totalUsd) {
   const verified = tokens.filter((t) => t.verified).length;
   const unverified = tokens.length - verified;
   const unpricedCount = tokens.filter((t) => toNum(t.valueUsd) <= 0).length;
+  const unpricedUsd = tokens.reduce((sum, t) => (toNum(t.valueUsd) <= 0 ? sum + toNum(t.valueUsd) : sum), 0);
   const taxonomy = aggregateWalletTaxonomy(tokens);
 
   let verifiedUsd = 0;
@@ -1257,10 +1270,11 @@ function renderSummaryStats(tokens, wallet, totalUsd) {
     verifiedUsd,
     unverifiedUsd,
     unpricedCount,
+    unpricedUsd,
     uniqueCategories: taxonomy.uniqueCategories,
     uniqueSubcategories: taxonomy.uniqueSubcategories,
-    topCategoryLine: taxonomy.topCategoryLine,
-    topSubcategoryLine: taxonomy.topSubcategoryLine,
+    topCategory: taxonomy.topCategory,
+    topSubcategory: taxonomy.topSubcategory,
   });
 }
 
@@ -1277,13 +1291,11 @@ function buildCategorisedSummaryTooltip(tokens) {
   if (taxonomy.uniqueSubcategories > 0) {
     parts.push(`${taxonomy.uniqueSubcategories} subcategor${taxonomy.uniqueSubcategories === 1 ? 'y' : 'ies'}`);
   }
-  if (taxonomy.topCategoryLine !== '—') {
-    const topCat = taxonomy.topCategoryLine.split(' · ')[0];
-    parts.push(`Top category: ${topCat}`);
+  if (taxonomy.topCategory) {
+    parts.push(`Top category: ${taxonomy.topCategory.name}`);
   }
-  if (taxonomy.topSubcategoryLine !== '—') {
-    const topSub = taxonomy.topSubcategoryLine.split(' · ')[0];
-    parts.push(`Top subcategory: ${topSub}`);
+  if (taxonomy.topSubcategory) {
+    parts.push(`Top subcategory: ${taxonomy.topSubcategory.name}`);
   }
   if (parts.length === 0) return 'No tokens with category or subcategory';
   return parts.join(' · ');
@@ -1415,6 +1427,13 @@ async function fetchBalances() {
     holdersMeta.textContent = `${lastTokens.length} tokens · RPC amounts + Vybe merge · Vybe token-details for category, supply, volume, and 1d/7d price change.`;
 
     queueTopLogoRepairs(lastTokens);
+
+    if (window.WalletPnlSection?.isEnabled?.()) {
+      await window.WalletPnlSection.fetchForWallet(wallet);
+    } else {
+      window.WalletPnlSection?.resetPlaceholder?.();
+      window.WalletPnlTable?.resetPlaceholder?.();
+    }
   } catch (err) {
     showError(err instanceof Error ? err.message : String(err));
   } finally {
@@ -1428,6 +1447,7 @@ setChartsPlaceholder();
 renderWalletSummaryPlaceholder();
 hydrateHoldersSummaryLabelIcons();
 initLogoRepairSettings();
+initWalletPnlIntegration();
 fetchAllBtn.addEventListener('click', () => fetchBalances());
 walletInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') fetchBalances();
@@ -1435,6 +1455,41 @@ walletInput.addEventListener('keydown', (e) => {
 
 window.__walletBalancesIconError = handleTokenIconError;
 window.__walletBalancesIconLoad = handleTokenIconLoad;
+
+function setHoldersTableView(mode) {
+  const showPnl = mode === 'pnl';
+  if (holdersTableViewSwitch) holdersTableViewSwitch.checked = showPnl;
+  if (holdersTableWrap) holdersTableWrap.hidden = showPnl;
+  if (walletPnlTableWrap) walletPnlTableWrap.hidden = !showPnl;
+  if (holdersSummaryGrid) holdersSummaryGrid.hidden = showPnl;
+  if (holdersSectionTitle) {
+    holdersSectionTitle.textContent = showPnl ? 'Wallet PnL (7d)' : 'Token Holdings';
+  }
+  if (showPnl && window.WalletPnlTable) {
+    window.WalletPnlTable.onMetricsUpdated();
+  }
+}
+
+function initWalletPnlIntegration() {
+  if (window.WalletPnlSection) {
+    window.WalletPnlSection.init({
+      walletPnlDetails: document.getElementById('walletPnlDetails'),
+      walletPnlMeta: document.getElementById('walletPnlMeta'),
+      walletPnlLoading: document.getElementById('walletPnlLoading'),
+      walletPnlError: document.getElementById('walletPnlError'),
+      walletPnl7dEnabled: document.getElementById('walletPnl7dEnabled'),
+    });
+  }
+  if (window.WalletPnlTable) {
+    window.WalletPnlTable.init({
+      walletPnlAssetsBody: document.getElementById('walletPnlAssetsBody'),
+    });
+  }
+  setHoldersTableView('holdings');
+  holdersTableViewSwitch?.addEventListener('change', () => {
+    setHoldersTableView(holdersTableViewSwitch.checked ? 'pnl' : 'holdings');
+  });
+}
 
 // Auto-load demo wallet on first visit
 fetchBalances();

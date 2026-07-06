@@ -20,6 +20,7 @@ import {
 } from './api/wallet-balance.js';
 import { resolveTokenMeta } from './api/resolve-token-meta.js';
 import { repairTokenIcon } from './api/repair-token-icon.js';
+import { getTopTraders, getWalletPnl } from './api/wallet-pnl.js';
 import { cachedMetaToApiResponse } from './api/token-meta-api.js';
 import { warmupHttpProxyPool } from './api/http-proxy-fetch.js';
 import { getRuntimeIconDir } from './token-icon-cache.js';
@@ -147,6 +148,63 @@ app.get('/api/token/:mint', async (req: Request, res: Response) => {
       return res.status(404).json({ error: `No metadata found for mint ${mint}` });
     }
     res.json(cachedMetaToApiResponse(resolved.meta, resolved.source));
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
+    res.status(status).json({ error: toHumanReadableError(err) });
+  }
+});
+
+/** GET /api/wallets/top-traders — related wallets by realized PnL */
+app.get('/api/wallets/top-traders', async (req: Request, res: Response) => {
+  try {
+    const mintAddress = q(req, 'mintAddress').trim();
+    const ilikeFilter = q(req, 'ilikeFilter').trim();
+    if (!mintAddress && !ilikeFilter) {
+      return res.status(400).json({ error: 'mintAddress or ilikeFilter required' });
+    }
+    const resolution = q(req, 'resolution') || '7d';
+    const sortByAsc = q(req, 'sortByAsc').trim();
+    const sortByDesc = q(req, 'sortByDesc').trim() || 'realizedPnlUsd';
+    const label = q(req, 'label').trim();
+    const page = qNum(req, 'page');
+    const limit = Math.min(qNum(req, 'limit') ?? 100, 1000);
+    const data = await getTopTraders(dataHttp, {
+      ...(mintAddress ? { mintAddress } : {}),
+      ...(ilikeFilter ? { ilikeFilter } : {}),
+      ...(label ? { label } : {}),
+      ...(sortByAsc ? { sortByAsc } : { sortByDesc }),
+      ...(page != null ? { page } : {}),
+      resolution,
+      limit,
+    });
+    res.json(data);
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
+    res.status(status).json({ error: toHumanReadableError(err) });
+  }
+});
+
+/** GET /api/wallets/:ownerAddress/pnl — wallet PnL summary + per-token metrics */
+app.get('/api/wallets/:ownerAddress/pnl', async (req: Request, res: Response) => {
+  try {
+    const rawOwner = req.params.ownerAddress;
+    const ownerAddress = (Array.isArray(rawOwner) ? rawOwner[0] : rawOwner ?? '').trim();
+    if (!ownerAddress) return res.status(400).json({ error: 'Owner address required' });
+
+    const resolution = q(req, 'resolution') || '7d';
+    const mintAddress = q(req, 'mintAddress').trim();
+    const sortByAsc = q(req, 'sortByAsc').trim();
+    const sortByDesc = q(req, 'sortByDesc').trim() || 'realizedPnlUsd';
+    const page = qNum(req, 'page');
+    const limit = Math.min(qNum(req, 'limit') ?? 1000, 1000);
+    const data = await getWalletPnl(dataHttp, ownerAddress, {
+      resolution,
+      ...(mintAddress ? { mintAddress } : {}),
+      ...(sortByAsc ? { sortByAsc } : { sortByDesc }),
+      ...(page != null ? { page } : {}),
+      limit,
+    });
+    res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
     res.status(status).json({ error: toHumanReadableError(err) });
