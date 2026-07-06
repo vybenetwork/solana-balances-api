@@ -861,12 +861,13 @@ function renderUsdBarRow(d, i, count, total, maxC, sumUsd) {
   const w = Math.min(100, (count / maxC) * 100);
   const color = walletUsdBandColor(i);
   const safe = escapeHtmlText(d.label);
-  const totalLabel = formatBandTotalUsd(sumUsd);
   const tokenWord = formatTokenCountWord(count);
+  const totalSuffix =
+    count > 0 ? ` (Total: ${escapeHtmlText(formatBandTotalUsd(sumUsd))})` : '';
   return `<div class="holders-hbar-row">
     <span class="holders-hbar-name" title="${safe}">${safe}</span>
     <div class="holders-hbar-track"><div class="holders-hbar-fill" style="width:${w}%;background:${color}"></div></div>
-    <span class="holders-hbar-meta">${formatPctSmart(pct)} <span class="holders-value-usd" style="color:${escapeHtmlAttr(color)}">${count.toLocaleString()} ${tokenWord} (Total: ${escapeHtmlText(totalLabel)})</span></span>
+    <span class="holders-hbar-meta">${formatPctSmart(pct)} <span class="holders-value-usd" style="color:${escapeHtmlAttr(color)}">${count.toLocaleString()} ${tokenWord}${totalSuffix}</span></span>
   </div>`;
 }
 
