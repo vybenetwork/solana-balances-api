@@ -59,9 +59,11 @@ const errorText = document.getElementById('errorText');
 
 let lastTokens = [];
 const TOP_LOGO_REPAIR_N = 20;
+const TOKEN_LOGO_PLACEHOLDER = '/token-placeholder.png';
 const logoLoadingMints = new Set();
 const logoRepairInFlight = new Set();
 const logoFailedMints = new Set();
+const logoRepairAttemptedMints = new Set();
 const logoPendingRepairMints = new Set();
 const logoImageLoadedMints = new Set();
 
@@ -475,10 +477,21 @@ function handleTokenIconError(mint, imgEl) {
     imgEl.classList.add('token-logo--img-loading');
     imgEl.style.opacity = '0';
   }
-  if (!isTopLogoRepairCandidate(mint)) return;
-  if (logoFailedMints.has(mint) || logoRepairInFlight.has(mint)) return;
-  logoFailedMints.add(mint);
+  if (logoFailedMints.has(mint)) {
+    updateTableAfterLogoChange();
+    return;
+  }
+  if (!isTopLogoRepairCandidate(mint) || logoRepairAttemptedMints.has(mint)) {
+    logoFailedMints.add(mint);
+    updateTableAfterLogoChange();
+    return;
+  }
+  if (logoRepairInFlight.has(mint)) return;
   repairTokenLogo(mint, { force: true });
+}
+
+function tokenLogoPlaceholderHtml() {
+  return `<img class="token-logo token-logo--placeholder" src="${TOKEN_LOGO_PLACEHOLDER}" alt="" aria-hidden="true">`;
 }
 
 function tokenLogoSpinnerHtml() {
@@ -487,6 +500,7 @@ function tokenLogoSpinnerHtml() {
 
 function tokenIconShowsSpinner(t) {
   const mint = t.mintAddress;
+  if (logoFailedMints.has(mint)) return false;
   if (logoLoadingMints.has(mint) || logoPendingRepairMints.has(mint)) return true;
   const icon = iconUrl(t);
   if (!icon) return false;
@@ -495,6 +509,9 @@ function tokenIconShowsSpinner(t) {
 
 function tokenIconHtml(t) {
   const mint = t.mintAddress;
+  if (logoFailedMints.has(mint)) {
+    return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
+  }
   const icon = iconUrl(t);
   const mintAttr = escapeHtmlAttr(mint);
   const showSpinner = tokenIconShowsSpinner(t);
@@ -526,19 +543,27 @@ async function fetchRepairedLogo(mint, force) {
 
 async function repairTokenLogo(mint, options = {}) {
   if (logoRepairInFlight.has(mint)) return;
+  logoRepairAttemptedMints.add(mint);
   logoRepairInFlight.add(mint);
   logoLoadingMints.add(mint);
   updateTableAfterLogoChange();
   try {
     const logo = await fetchRepairedLogo(mint, options.force === true);
-    if (!logo) return;
+    if (!logo) {
+      logoFailedMints.add(mint);
+      return;
+    }
     const idx = lastTokens.findIndex((row) => row.mintAddress === mint);
     if (idx < 0) return;
-    if (lastTokens[idx].logoUrl?.trim() === logo) return;
+    if (lastTokens[idx].logoUrl?.trim() === logo) {
+      logoFailedMints.add(mint);
+      return;
+    }
     lastTokens[idx] = { ...lastTokens[idx], logoUrl: logo };
+    logoFailedMints.delete(mint);
     logoImageLoadedMints.delete(mint);
   } catch {
-    /* ignore per-token logo failures */
+    logoFailedMints.add(mint);
   } finally {
     logoLoadingMints.delete(mint);
     logoPendingRepairMints.delete(mint);
@@ -1227,7 +1252,10 @@ async function fetchBalances() {
   loadingIndicator.hidden = false;
   holdersLoading.hidden = false;
   logoFailedMints.clear();
+  logoRepairAttemptedMints.clear();
   logoPendingRepairMints.clear();
+  logoLoadingMints.clear();
+  logoRepairInFlight.clear();
   logoImageLoadedMints.clear();
 
   try {

@@ -1630,6 +1630,13 @@ button:not(.vybe-action-btn):disabled {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.token-logo--placeholder {
+  background: #ffffff;
+  object-fit: contain;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
 .token-logo-slot {
   position: relative;
   display: inline-flex;
