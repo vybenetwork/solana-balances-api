@@ -35,7 +35,6 @@ const logoImgTimeoutSecInput = document.getElementById('logoImgTimeoutSec');
 const fetchAllBtn = document.getElementById('fetchAll');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const walletSummaryLabel = document.getElementById('walletSummaryLabel');
-const walletSummarySub = document.getElementById('walletSummarySub');
 const walletLastUpdatedValue = document.getElementById('walletLastUpdatedValue');
 const walletSummaryStats = document.getElementById('walletSummaryStats');
 const chartsPanel = document.getElementById('chartsPanel');
@@ -961,7 +960,6 @@ function formatWalletUpdateTime() {
 
 function renderWalletSummaryPlaceholder() {
   walletSummaryLabel.textContent = '—';
-  walletSummarySub.textContent = 'Enter a wallet and load balances';
   walletLastUpdatedValue.textContent = '—';
   walletSummaryStats.innerHTML = buildWalletSummaryPlaceholderHtml();
   updateHoldersSummaryStrip([]);
@@ -1257,8 +1255,7 @@ function renderSummaryStats(tokens, wallet, totalUsd) {
     else unverifiedUsd += v;
   }
 
-  walletSummaryLabel.textContent = truncateAddress(wallet);
-  walletSummarySub.textContent = wallet;
+  walletSummaryLabel.textContent = wallet;
   walletLastUpdatedValue.textContent = formatWalletUpdateTime();
   walletSummaryStats.innerHTML = buildWalletSummarySections({
     wallet,

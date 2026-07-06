@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=97" />
+    <link rel="stylesheet" href="app.css?v=99" />
   </head>
   <body>
     <div class="container">
@@ -192,6 +192,26 @@
             </div>
           </div>
 
+          <div class="field field--wallet-pnl-fetch">
+            <label for="walletPnl7dEnabled">
+              <span class="label-icon field-icon icon-chart" aria-hidden="true"></span>
+              7d Wallet PnL
+            </label>
+            <div class="field-control field-control--logo-repair">
+              <label
+                class="trades-fetch-switch"
+                id="walletPnl7dSwitchLabel"
+                title="Fetch 7d wallet PnL and related-wallets dashboard on load"
+              >
+                <input type="checkbox" id="walletPnl7dEnabled" class="trades-fetch-switch-input" checked />
+                <span class="trades-fetch-switch-track">
+                  <span class="trades-fetch-switch-option" data-value="single">Off</span>
+                  <span class="trades-fetch-switch-option" data-value="paged">On</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
           <div class="field field--top-logo-repair">
             <label for="topLogoRepairN">
               <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
@@ -241,26 +261,6 @@
               <span class="input-suffix" aria-hidden="true">sec</span>
             </div>
           </div>
-
-          <div class="field field--wallet-pnl-fetch">
-            <label for="walletPnl7dEnabled">
-              <span class="label-icon field-icon icon-chart" aria-hidden="true"></span>
-              7d Wallet PnL
-            </label>
-            <div class="field-control field-control--logo-repair">
-              <label
-                class="trades-fetch-switch"
-                id="walletPnl7dSwitchLabel"
-                title="Fetch 7d wallet PnL and related-wallets dashboard on load"
-              >
-                <input type="checkbox" id="walletPnl7dEnabled" class="trades-fetch-switch-input" checked />
-                <span class="trades-fetch-switch-track">
-                  <span class="trades-fetch-switch-option" data-value="single">Off</span>
-                  <span class="trades-fetch-switch-option" data-value="paged">On</span>
-                </span>
-              </label>
-            </div>
-          </div>
         </div>
 
         <div class="remote-filters-actions-row">
@@ -288,8 +288,7 @@
           <div class="token-section-intro">
             <div class="token-header">
               <div>
-                <span id="walletSummaryLabel" class="symbol">—</span>
-                <span id="walletSummarySub" class="name">Enter a wallet and load balances</span>
+                <span id="walletSummaryLabel" class="symbol mono">—</span>
               </div>
             </div>
             <aside class="token-last-updated" aria-label="Wallet data last updated">
@@ -483,6 +482,6 @@
     <script src="charts-pie.js?v=2"></script>
     <script src="wallet-pnl-section.js?v=4"></script>
     <script src="wallet-pnl-table.js?v=2"></script>
-    <script src="app.js?v=97"></script>
+    <script src="app.js?v=98"></script>
   </body>
 </html>

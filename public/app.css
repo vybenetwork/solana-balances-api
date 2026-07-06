@@ -1846,6 +1846,14 @@ button:not(.vybe-action-btn):disabled {
   color: #fafafa;
 }
 
+#walletSummaryLabel.mono {
+  font-family: ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+
 .token-header .name {
   font-size: 0.78rem;
   color: #94a3b8;
@@ -5703,7 +5711,7 @@ html {
 }
 
 .holders-table-view-switch.trades-fetch-switch {
-  min-width: 11.5rem;
+  min-width: fit-content;
 }
 
 .field--wallet-pnl-fetch .trades-fetch-switch {
