@@ -740,9 +740,11 @@ function walletStatRowHtml(row) {
 
 function walletStatSectionHtml(section) {
   const rows = section.rows.map((r) => walletStatRowHtml(r)).join('');
+  const rowsClass =
+    section.rowsLayout === '2col' ? 'token-stat-rows token-stat-rows--2col' : 'token-stat-rows';
   return `<section class="token-stats-group token-stats-group--${section.theme}">
     <h3 class="token-stats-group-title">${section.icon}<span>${escapeHtmlText(section.title)}</span></h3>
-    <div class="token-stat-rows">${rows}</div>
+    <div class="${rowsClass}">${rows}</div>
   </section>`;
 }
 
@@ -782,6 +784,7 @@ function buildWalletSummarySections(data) {
     icon: WALLET_SECTION_ICONS.portfolio,
     title: 'Portfolio Value',
     theme: 'price',
+    rowsLayout: '2col',
     rows: [
       { key: 'priceUsd', label: 'Est. total USD', valueHtml: walletStatUsdHtml(data.totalUsd) },
       { key: 'marketCap', label: 'Verified USD', valueHtml: walletStatUsdHtml(data.verifiedUsd) },
