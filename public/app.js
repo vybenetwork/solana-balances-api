@@ -1435,6 +1435,72 @@ function clearError() {
   holdersError.textContent = '';
 }
 
+async function consumeWalletBalanceStream(url, onEvent) {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    const text = await res.text();
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const body = JSON.parse(text);
+      if (body.error) errMsg = body.error;
+    } catch {
+      const trimmed = text.trim();
+      if (trimmed) errMsg = trimmed;
+    }
+    throw new Error(errMsg);
+  }
+  if (!res.body) throw new Error('Streaming response not supported');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      onEvent(JSON.parse(trimmed));
+    }
+  }
+  const tail = buffer.trim();
+  if (tail) onEvent(JSON.parse(tail));
+}
+
+function createWalletBalanceStreamRenderer(wallet) {
+  let renderQueued = false;
+  return {
+    applyInitial(tokens) {
+      lastTokens = tokens;
+      this.scheduleRender();
+      queueTopLogoRepairs(lastTokens);
+    },
+    applyUpdate(token) {
+      const idx = lastTokens.findIndex((row) => row.mintAddress === token.mintAddress);
+      if (idx >= 0) lastTokens[idx] = token;
+      else lastTokens.push(token);
+      this.scheduleRender();
+    },
+    scheduleRender() {
+      if (renderQueued) return;
+      renderQueued = true;
+      requestAnimationFrame(() => {
+        renderQueued = false;
+        const totalUsd = lastTokens.reduce((sum, row) => sum + toNum(row.valueUsd), 0);
+        renderSummaryStats(lastTokens, wallet, totalUsd);
+        renderCharts(lastTokens, wallet, totalUsd);
+        renderTable(lastTokens, totalUsd);
+        if (!holdersTableViewSwitch?.checked) {
+          holdersMeta.textContent = formatHoldersMetaLoadedText(lastTokens.length);
+        }
+      });
+    },
+  };
+}
+
 async function fetchBalances() {
   const wallet = walletInput.value.trim();
   if (!wallet) {
@@ -1455,28 +1521,25 @@ async function fetchBalances() {
 
   try {
     const limit = limitSelect.value || '100';
-    const url = `/api/wallets/${encodeURIComponent(wallet)}/token-balances?enrich=1&limit=${limit}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const url = `/api/wallets/${encodeURIComponent(wallet)}/token-balances?stream=1&enrich=1&limit=${limit}`;
+    const streamRenderer = createWalletBalanceStreamRenderer(wallet);
+    let walletPnlPromise = null;
 
-    lastTokens = data.tokens || [];
-    const totalUsd = lastTokens.reduce((s, t) => s + toNum(t.valueUsd), 0);
+    await consumeWalletBalanceStream(url, (event) => {
+      if (event.event === 'initial') {
+        streamRenderer.applyInitial(event.tokens || []);
+        if (window.WalletPnlSection?.isEnabled?.()) {
+          walletPnlPromise = window.WalletPnlSection.fetchForWallet(wallet);
+        } else {
+          window.WalletPnlSection?.resetPlaceholder?.();
+          window.WalletPnlTable?.resetPlaceholder?.();
+        }
+      } else if (event.event === 'update' && event.token) {
+        streamRenderer.applyUpdate(event.token);
+      }
+    });
 
-    renderSummaryStats(lastTokens, wallet, totalUsd);
-    renderCharts(lastTokens, wallet, totalUsd);
-    renderTable(lastTokens, totalUsd);
-
-    holdersMeta.textContent = formatHoldersMetaLoadedText(lastTokens.length);
-
-    queueTopLogoRepairs(lastTokens);
-
-    if (window.WalletPnlSection?.isEnabled?.()) {
-      await window.WalletPnlSection.fetchForWallet(wallet);
-    } else {
-      window.WalletPnlSection?.resetPlaceholder?.();
-      window.WalletPnlTable?.resetPlaceholder?.();
-    }
+    if (walletPnlPromise) await walletPnlPromise;
     if (holdersTableViewSwitch?.checked) {
       updateHoldersSectionMeta('pnl');
     }
@@ -1488,21 +1551,6 @@ async function fetchBalances() {
     holdersLoading.hidden = true;
   }
 }
-
-setChartsPlaceholder();
-renderWalletSummaryPlaceholder();
-renderHoldersTablePlaceholder();
-updateHoldersSectionMeta('holdings');
-hydrateHoldersSummaryLabelIcons();
-initLogoRepairSettings();
-initWalletPnlIntegration();
-fetchAllBtn.addEventListener('click', () => fetchBalances());
-walletInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') fetchBalances();
-});
-
-window.__walletBalancesIconError = handleTokenIconError;
-window.__walletBalancesIconLoad = handleTokenIconLoad;
 
 const HOLDERS_META_PLACEHOLDER = 'Load a wallet to see token balances ranked by USD value, with 1d/7d price change, market cap, and data source.';
 const HOLDERS_PNL_META_PLACEHOLDER = 'Load a wallet with 7d PnL enabled to see per-token realized and unrealized PnL, buys/sells, and volumes.';
@@ -1568,3 +1616,18 @@ function initWalletPnlIntegration() {
     setWalletStatsView(walletStatsViewSwitch.checked ? 'pnl' : 'holdings');
   });
 }
+
+setChartsPlaceholder();
+renderWalletSummaryPlaceholder();
+renderHoldersTablePlaceholder();
+updateHoldersSectionMeta('holdings');
+hydrateHoldersSummaryLabelIcons();
+initLogoRepairSettings();
+initWalletPnlIntegration();
+fetchAllBtn.addEventListener('click', () => fetchBalances());
+walletInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') fetchBalances();
+});
+
+window.__walletBalancesIconError = handleTokenIconError;
+window.__walletBalancesIconLoad = handleTokenIconLoad;
