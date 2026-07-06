@@ -1827,6 +1827,12 @@ button:not(.vybe-action-btn):disabled {
   gap: 0.4rem;
 }
 
+.token-section-content .token-stat-rows-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .token-section-content .token-stat-row {
   display: grid;
   grid-template-columns: 2.35rem minmax(0, 1fr);
@@ -2120,7 +2126,7 @@ button:not(.vybe-action-btn):disabled {
 
 .token-stats-row.token-stats-row--split-overview {
   grid-template-columns: minmax(0, 26%) minmax(0, 74%);
-  align-items: stretch;
+  align-items: start;
 }
 
 .token-stats-row--split-overview > .token-stats-col {
@@ -2130,16 +2136,22 @@ button:not(.vybe-action-btn):disabled {
 }
 
 .token-stats-col--overview .token-stats-group {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
+  align-self: start;
   min-height: 0;
 }
 
+.token-stats-col--overview .token-stat-rows-stack,
+.token-stats-col--overview .token-stat-rows {
+  flex: 0 0 auto;
+}
+
 .token-stats-col--overview .token-stat-rows--2col {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
   align-content: start;
+  align-items: stretch;
 }
 
 .token-stats-pair-grid {
@@ -3518,10 +3530,18 @@ td .mono {
 .wallet-charts-row__col--usd-bands .holders-hbar-name {
   grid-column: 1;
   grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
   font-size: 0.72rem;
+}
+
+.wallet-charts-row__col--usd-bands .holders-value-usd-bag__svg {
+  width: 8.8px;
+  height: 12px;
 }
 
 .wallet-charts-row__col--usd-bands .holders-hbar-meta {
