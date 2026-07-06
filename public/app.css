@@ -1066,6 +1066,11 @@ body {
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0-2a2.5 2.5 0 1 1 2.5-2.5A2.5 2.5 0 0 1 12 10Zm0 4c-4.4 0-8 2.2-8 5a1 1 0 0 0 2 0c0-1.4 2.5-3 6-3s6 1.6 6 3a1 1 0 0 0 2 0c0-2.8-3.6-5-8-5Z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
+.field-icon.icon-wallet::after {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 7H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Zm0 2v2H5V9h16Zm-3 5a2 2 0 1 1-2-2a2 2 0 0 1 2 2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 7H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Zm0 2v2H5V9h16Zm-3 5a2 2 0 1 1-2-2a2 2 0 0 1 2 2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
 .field-icon.icon-info::after {
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -1848,10 +1853,49 @@ button:not(.vybe-action-btn):disabled {
 
 #walletSummaryLabel.mono {
   font-family: ui-monospace, monospace;
-  font-size: 24px;
+  font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0;
   word-break: break-all;
+  color: #d4d4d8;
+}
+
+#walletSummarySection .section-header {
+  gap: 0.5rem 0.75rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.15rem;
+}
+
+#walletSummarySection .wallet-summary-intro-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  flex-wrap: wrap;
+  margin: 0.35rem 0 0.85rem;
+}
+
+#walletSummarySection .wallet-summary-lede {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  max-width: min(100%, 42rem);
+}
+
+.wallet-summary-address-icon {
+  position: relative;
+  flex-shrink: 0;
+  left: auto;
+  width: 14px;
+  height: 14px;
+  opacity: 0.9;
+  background: transparent;
+  border-radius: 0;
+}
+
+.wallet-summary-address-icon::after {
+  background: #a1a1aa;
 }
 
 .token-header .name {
@@ -4228,6 +4272,63 @@ td .mono {
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.35),
     0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.token-tier-metric__ico--pnl {
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.22);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--up {
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.38);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--flat {
+  background: rgba(234, 179, 8, 0.14);
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--down {
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.38);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--neutral {
+  background: rgba(113, 113, 122, 0.12);
+  color: #71717a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--up {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--flat {
+  color: #eab308;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--down {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.token-tier-metric__ico--layers {
+  background: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.2);
 }
 
 .token-tier-metric__ico--usd {
