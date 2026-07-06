@@ -29,6 +29,10 @@ const HOLDERS_EXTERNAL_LINK_SVG =
 
 const walletInput = document.getElementById('wallet');
 const limitSelect = document.getElementById('limit');
+const topLogoRepairEnabledInput = document.getElementById('topLogoRepairEnabled');
+const topLogoRepairNInput = document.getElementById('topLogoRepairN');
+const logoImgTimeoutSecInput = document.getElementById('logoImgTimeoutSec');
+const logoRepairTimeoutSecInput = document.getElementById('logoRepairTimeoutSec');
 const fetchAllBtn = document.getElementById('fetchAll');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const walletSummaryLabel = document.getElementById('walletSummaryLabel');
@@ -58,10 +62,12 @@ const errorSection = document.getElementById('errorSection');
 const errorText = document.getElementById('errorText');
 
 let lastTokens = [];
-const TOP_LOGO_REPAIR_N = 20;
 const TOKEN_LOGO_PLACEHOLDER = '/token-placeholder.png';
-const LOGO_IMG_TIMEOUT_MS = 12_000;
-const LOGO_REPAIR_TIMEOUT_MS = 15_000;
+const LOGO_SETTINGS_DEFAULTS = {
+  topLogoRepairN: { min: 1, max: 20, fallback: 10 },
+  logoImgTimeoutSec: { min: 3, max: 30, fallback: 12 },
+  logoRepairTimeoutSec: { min: 3, max: 20, fallback: 15 },
+};
 const logoLoadingMints = new Set();
 const logoRepairInFlight = new Set();
 const logoFailedMints = new Set();
@@ -69,6 +75,50 @@ const logoRepairAttemptedMints = new Set();
 const logoPendingRepairMints = new Set();
 const logoImageLoadedMints = new Set();
 const logoImgTimeouts = new Map();
+
+function clampLogoSetting(value, bounds) {
+  const n = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(n)) return bounds.fallback;
+  return Math.min(bounds.max, Math.max(bounds.min, n));
+}
+
+function getTopLogoRepairN() {
+  if (!topLogoRepairEnabledInput?.checked) return 0;
+  return clampLogoSetting(topLogoRepairNInput?.value, LOGO_SETTINGS_DEFAULTS.topLogoRepairN);
+}
+
+function getLogoImgTimeoutMs() {
+  return clampLogoSetting(logoImgTimeoutSecInput?.value, LOGO_SETTINGS_DEFAULTS.logoImgTimeoutSec) * 1000;
+}
+
+function getLogoRepairTimeoutMs() {
+  return (
+    clampLogoSetting(logoRepairTimeoutSecInput?.value, LOGO_SETTINGS_DEFAULTS.logoRepairTimeoutSec) * 1000
+  );
+}
+
+function syncTopLogoRepairFieldState() {
+  if (!topLogoRepairNInput || !topLogoRepairEnabledInput) return;
+  topLogoRepairNInput.disabled = !topLogoRepairEnabledInput.checked;
+}
+
+function clampLogoSettingInput(input, bounds) {
+  if (!input) return;
+  input.value = String(clampLogoSetting(input.value, bounds));
+}
+
+function initLogoRepairSettings() {
+  syncTopLogoRepairFieldState();
+  topLogoRepairEnabledInput?.addEventListener('change', syncTopLogoRepairFieldState);
+  const boundInputs = [
+    [topLogoRepairNInput, LOGO_SETTINGS_DEFAULTS.topLogoRepairN],
+    [logoImgTimeoutSecInput, LOGO_SETTINGS_DEFAULTS.logoImgTimeoutSec],
+    [logoRepairTimeoutSecInput, LOGO_SETTINGS_DEFAULTS.logoRepairTimeoutSec],
+  ];
+  for (const [input, bounds] of boundInputs) {
+    input?.addEventListener('change', () => clampLogoSettingInput(input, bounds));
+  }
+}
 
 function escapeHtmlText(s) {
   return String(s)
@@ -481,7 +531,7 @@ function failTokenLogo(mint) {
 
 function armLogoLoadTimeout(mint) {
   clearLogoLoadTimeout(mint);
-  const id = setTimeout(() => handleLogoLoadTimeout(mint), LOGO_IMG_TIMEOUT_MS);
+  const id = setTimeout(() => handleLogoLoadTimeout(mint), getLogoImgTimeoutMs());
   logoImgTimeouts.set(mint, id);
 }
 
@@ -580,7 +630,7 @@ function updateTableAfterLogoChange() {
 async function fetchRepairedLogo(mint, force) {
   const url = `/api/token/${encodeURIComponent(mint)}/logo?force=${force ? '1' : '0'}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LOGO_REPAIR_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), getLogoRepairTimeoutMs());
   try {
     const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
     if (!res.ok) return null;
@@ -626,9 +676,11 @@ async function repairTokenLogo(mint, options = {}) {
 }
 
 function queueTopLogoRepairs(tokens) {
+  const topN = getTopLogoRepairN();
+  if (topN <= 0) return;
   const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
   const candidates = sorted
-    .slice(0, TOP_LOGO_REPAIR_N)
+    .slice(0, topN)
     .filter((item) => !item.logoUrl?.trim());
   for (const item of candidates) {
     logoPendingRepairMints.add(item.mintAddress);
@@ -1375,6 +1427,7 @@ async function fetchBalances() {
 setChartsPlaceholder();
 renderWalletSummaryPlaceholder();
 hydrateHoldersSummaryLabelIcons();
+initLogoRepairSettings();
 fetchAllBtn.addEventListener('click', () => fetchBalances());
 walletInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') fetchBalances();

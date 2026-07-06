@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f0f12" />
     <link rel="canonical" href="https://solana-wallet-balances-api.vybenetwork.com/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=81" />
+    <link rel="stylesheet" href="app.css?v=88" />
   </head>
   <body>
     <div class="container">
@@ -158,25 +158,25 @@
           </div>
         </div>
 
-        <div class="field">
-          <label for="wallet">
-            <span class="label-icon field-icon icon-tag" aria-hidden="true"></span>
-            Wallet address
-          </label>
-          <div class="field-control">
-            <span class="field-icon icon-tag" aria-hidden="true"></span>
-            <input
-              type="text"
-              id="wallet"
-              value="7Tar8QZTrRPwoGY5Ke9Vfwf6CmpBfekrNofERxgReza"
-              placeholder="Solana wallet address"
-              spellcheck="false"
-            />
+        <div class="remote-filters-fields-row">
+          <div class="field field--wallet">
+            <label for="wallet">
+              <span class="label-icon field-icon icon-tag" aria-hidden="true"></span>
+              Wallet address
+            </label>
+            <div class="field-control">
+              <span class="field-icon icon-tag" aria-hidden="true"></span>
+              <input
+                type="text"
+                id="wallet"
+                value="7Tar8QZTrRPwoGY5Ke9Vfwf6CmpBfekrNofERxgReza"
+                placeholder="Solana wallet address"
+                spellcheck="false"
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="holders-fetch-row">
-          <div class="field">
+          <div class="field field--limit">
             <label for="limit">
               <span class="label-icon field-icon icon-hash" aria-hidden="true"></span>
               Limit
@@ -192,6 +192,75 @@
             </div>
           </div>
 
+          <div class="field field--top-logo-repair">
+            <label for="topLogoRepairN">
+              <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
+              Top logo repair
+            </label>
+            <div class="field-control field-control--logo-repair">
+              <span class="field-icon icon-grid" aria-hidden="true"></span>
+              <label
+                class="trades-fetch-switch"
+                id="topLogoRepairSwitchLabel"
+                title="Enable proactive top-logo repair on load"
+              >
+                <input type="checkbox" id="topLogoRepairEnabled" class="trades-fetch-switch-input" checked />
+                <span class="trades-fetch-switch-track">
+                  <span class="trades-fetch-switch-option" data-value="single">Off</span>
+                  <span class="trades-fetch-switch-option" data-value="paged">On</span>
+                </span>
+              </label>
+              <input
+                type="number"
+                id="topLogoRepairN"
+                min="1"
+                max="20"
+                value="10"
+                title="On load, only the top N holdings by USD value missing logos get proactive repair"
+              />
+            </div>
+          </div>
+
+          <div class="field field--logo-img-timeout">
+            <label for="logoImgTimeoutSec">
+              <span class="label-icon field-icon icon-clock" aria-hidden="true"></span>
+              Fallback Timeout
+            </label>
+            <div class="field-control field-control-input-suffix">
+              <span class="field-icon icon-clock" aria-hidden="true"></span>
+              <input
+                type="number"
+                id="logoImgTimeoutSec"
+                min="3"
+                max="30"
+                value="12"
+                title="If a token image does not load in time, trigger repair"
+              />
+              <span class="input-suffix" aria-hidden="true">sec</span>
+            </div>
+          </div>
+
+          <div class="field field--logo-repair-timeout">
+            <label for="logoRepairTimeoutSec">
+              <span class="label-icon field-icon icon-scale" aria-hidden="true"></span>
+              Repair Timeout
+            </label>
+            <div class="field-control field-control-input-suffix">
+              <span class="field-icon icon-scale" aria-hidden="true"></span>
+              <input
+                type="number"
+                id="logoRepairTimeoutSec"
+                min="3"
+                max="20"
+                value="15"
+                title="Timeout for GET /api/token/:mint/logo"
+              />
+              <span class="input-suffix" aria-hidden="true">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="remote-filters-actions-row">
           <div class="actions">
             <button type="button" id="fetchAll" class="vybe-action-btn vybe-action-btn--fetch fetch-btn-attention">
               <span class="vybe-action-btn__icon vybe-action-btn__icon--fetch" aria-hidden="true"></span>
@@ -357,6 +426,6 @@
       </section>
     </div>
     <script src="charts-pie.js?v=1"></script>
-    <script src="app.js?v=88"></script>
+    <script src="app.js?v=90"></script>
   </body>
 </html>
