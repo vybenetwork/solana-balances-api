@@ -34,6 +34,7 @@ export interface VybeTokenBalance {
   priceUsd7dTrend?: string[] | null;
   valueUsd?: string;
   verified?: boolean;
+  category?: string | null;
   [key: string]: unknown;
 }
 

@@ -82,6 +82,77 @@ const logoRepairAttemptedMints = new Set();
 const logoPendingRepairMints = new Set();
 const logoImageLoadedMints = new Set();
 const logoImgTimeouts = new Map();
+const VYBE_LOGO_LOAD_STAGGER_MS = 20;
+/** Matches server skipLogoEnrich filter + hide bogus USD above this in the GUI. */
+const SUSPICIOUS_MASK_VALUE_USD_MIN = 100;
+const vybeOriginLogoMints = new Set();
+const vybeLogoLoadQueue = [];
+const vybeLogoLoadQueuedMints = new Set();
+const logoSrcAssignedMints = new Set();
+let vybeLogoLoadQueueScheduled = false;
+let tokenLogoObserver = null;
+
+function shouldMaskSuspiciousValueUsd(token) {
+  return token?.skipLogoEnrich === true && toNum(token.valueUsd) > SUSPICIOUS_MASK_VALUE_USD_MIN;
+}
+
+function applySuspiciousValueUsdMask(tokens) {
+  for (const token of tokens) {
+    if (shouldMaskSuspiciousValueUsd(token)) token.valueUsd = 0;
+  }
+}
+
+function getTokenLogoScrollRoot() {
+  return document.getElementById('holdersTableWrap');
+}
+
+function disconnectTokenLogoObserver() {
+  tokenLogoObserver?.disconnect();
+  tokenLogoObserver = null;
+}
+
+function activateTokenLogoImg(img) {
+  const mint = img.dataset.logoMint;
+  const url = img.dataset.logoUrl?.trim();
+  if (!mint || !url) return;
+  if (logoImageLoadedMints.has(mint) || logoFailedMints.has(mint)) return;
+  if (logoSrcAssignedMints.has(mint)) return;
+
+  if (img.dataset.vybeLogo === '1') {
+    enqueueVybeLogoImageLoad(mint, url);
+    return;
+  }
+  img.src = url;
+  logoSrcAssignedMints.add(mint);
+  armLogoLoadTimeout(mint);
+}
+
+function observeTokenLogosInTable() {
+  disconnectTokenLogoObserver();
+  const root = getTokenLogoScrollRoot();
+  if (!root || !holdersBody || typeof IntersectionObserver !== 'function') return;
+
+  tokenLogoObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const img = entry.target;
+        if (!(img instanceof HTMLImageElement)) continue;
+        tokenLogoObserver?.unobserve(img);
+        activateTokenLogoImg(img);
+      }
+    },
+    { root, rootMargin: '120px 0px', threshold: 0.01 },
+  );
+
+  for (const img of holdersBody.querySelectorAll('img.token-logo[data-logo-url]')) {
+    const mint = img.dataset.logoMint;
+    if (!mint) continue;
+    if (logoImageLoadedMints.has(mint) || logoFailedMints.has(mint)) continue;
+    if (logoSrcAssignedMints.has(mint)) continue;
+    tokenLogoObserver.observe(img);
+  }
+}
 
 function clampLogoSetting(value, bounds) {
   const n = Number.parseInt(String(value), 10);
@@ -267,10 +338,27 @@ function formatCompactNum(n) {
   return formatRoundedValue(num);
 }
 
+/** Holdings table spot price floor (matches suspicious price filter). */
+const TABLE_PRICE_USD_MIN = 0.00001;
+
+function formatTablePriceUsdFraction(num) {
+  if (!(num > 0)) return '0';
+  if (num > 0.01) {
+    return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  const decimalStr = num.toFixed(12).replace(/\.?0+$/, '');
+  const dotIdx = decimalStr.indexOf('.');
+  if (dotIdx < 0) return decimalStr;
+  const intPart = decimalStr.slice(0, dotIdx) || '0';
+  const fracPart = decimalStr.slice(dotIdx + 1).replace(/0+$/, '');
+  if (!fracPart) return intPart;
+  return `${intPart}.${fracPart}`;
+}
+
 function formatTablePriceUsd(n) {
   const num = toNum(n);
-  if (!Number.isFinite(num) || num <= 0) return '—';
-  return `$${formatRoundedValue(num)}`;
+  if (!Number.isFinite(num) || num < TABLE_PRICE_USD_MIN) return '—';
+  return `$${formatTablePriceUsdFraction(num)}`;
 }
 
 function formatPctChangeWithArrow(pct) {
@@ -330,6 +418,27 @@ function formatZeroChangeChipHtml(label, inheritPct = null) {
     return `<span class="swap-pair-chg ${cls}">${escapeHtmlText(label)} 0%</span>`;
   }
   return `<span class="swap-pair-chg swap-pair-chg--dead">${escapeHtmlText(label)} 0%</span>`;
+}
+
+function isBothZeroChangeDisplay(t) {
+  const has1d = hasValidPriceChangePct(t.priceChange1dPct);
+  const has7d = hasValidPriceChangePct(t.priceChange7dPct);
+  if (!has1d && !has7d) return true;
+  return has1d && has7d && Number(t.priceChange1dPct) === 0 && Number(t.priceChange7dPct) === 0;
+}
+
+function holdersTableSortRank(t) {
+  if (isBothZeroChangeDisplay(t)) return 3;
+  const cat = classifyTokenPieChange(t);
+  if (cat === 'profitable') return 0;
+  if (cat === 'breaking_even') return 1;
+  return 2;
+}
+
+function compareHoldersTableRows(a, b) {
+  const rankDiff = holdersTableSortRank(a) - holdersTableSortRank(b);
+  if (rankDiff !== 0) return rankDiff;
+  return toNum(b.valueUsd) - toNum(a.valueUsd);
 }
 
 function formatChangeColumnHtml(t) {
@@ -549,6 +658,56 @@ function clearAllLogoLoadTimeouts() {
   logoImgTimeouts.clear();
 }
 
+function resetVybeLogoLoadQueue() {
+  disconnectTokenLogoObserver();
+  vybeOriginLogoMints.clear();
+  vybeLogoLoadQueue.length = 0;
+  vybeLogoLoadQueuedMints.clear();
+  vybeLogoLoadQueueScheduled = false;
+  logoSrcAssignedMints.clear();
+}
+
+function recordVybeOriginLogos(tokens) {
+  vybeOriginLogoMints.clear();
+  for (const t of tokens) {
+    if (t.logoUrl?.trim()) vybeOriginLogoMints.add(t.mintAddress);
+  }
+}
+
+function enqueueVybeLogoImageLoad(mint, url) {
+  if (!vybeOriginLogoMints.has(mint)) return;
+  if (logoImageLoadedMints.has(mint) || logoFailedMints.has(mint)) return;
+  if (logoSrcAssignedMints.has(mint)) return;
+  if (vybeLogoLoadQueuedMints.has(mint)) return;
+  vybeLogoLoadQueuedMints.add(mint);
+  vybeLogoLoadQueue.push({ mint, url });
+  scheduleVybeLogoLoadQueue();
+}
+
+function scheduleVybeLogoLoadQueue() {
+  if (vybeLogoLoadQueueScheduled) return;
+  vybeLogoLoadQueueScheduled = true;
+  pumpVybeLogoLoadQueue();
+}
+
+function pumpVybeLogoLoadQueue() {
+  if (vybeLogoLoadQueue.length === 0) {
+    vybeLogoLoadQueueScheduled = false;
+    return;
+  }
+  const { mint, url } = vybeLogoLoadQueue.shift();
+  vybeLogoLoadQueuedMints.delete(mint);
+  const img = holdersBody?.querySelector(
+    `img.token-logo[data-logo-mint="${CSS.escape(mint)}"]`,
+  );
+  if (img && !logoImageLoadedMints.has(mint) && !logoFailedMints.has(mint)) {
+    img.src = url;
+    logoSrcAssignedMints.add(mint);
+    armLogoLoadTimeout(mint);
+  }
+  setTimeout(pumpVybeLogoLoadQueue, VYBE_LOGO_LOAD_STAGGER_MS);
+}
+
 function failTokenLogo(mint) {
   clearLogoLoadTimeout(mint);
   logoFailedMints.add(mint);
@@ -563,9 +722,18 @@ function armLogoLoadTimeout(mint) {
   logoImgTimeouts.set(mint, id);
 }
 
+function tokenSkipsLogoRepair(mint) {
+  const row = lastTokens.find((t) => t.mintAddress === mint);
+  return row?.skipLogoEnrich === true;
+}
+
 function handleLogoLoadTimeout(mint) {
   logoImgTimeouts.delete(mint);
   if (logoFailedMints.has(mint) || logoImageLoadedMints.has(mint)) return;
+  if (tokenSkipsLogoRepair(mint)) {
+    failTokenLogo(mint);
+    return;
+  }
   if (logoRepairInFlight.has(mint)) {
     armLogoLoadTimeout(mint);
     return;
@@ -584,9 +752,6 @@ function handleTokenIconLoad(mint, imgEl) {
     imgEl.classList.remove('token-logo--img-loading');
     imgEl.style.opacity = '1';
   }
-  const slot = imgEl?.closest('.token-logo-slot');
-  const spinner = slot?.querySelector('.token-logo--loading');
-  if (spinner) spinner.remove();
 }
 
 function handleTokenIconError(mint, imgEl) {
@@ -598,6 +763,10 @@ function handleTokenIconError(mint, imgEl) {
   }
   if (logoFailedMints.has(mint)) {
     updateTableAfterLogoChange();
+    return;
+  }
+  if (tokenSkipsLogoRepair(mint)) {
+    failTokenLogo(mint);
     return;
   }
   if (logoRepairInFlight.has(mint)) return;
@@ -612,17 +781,14 @@ function tokenLogoPlaceholderHtml() {
   return `<img class="token-logo token-logo--placeholder" src="${TOKEN_LOGO_PLACEHOLDER}" alt="" aria-hidden="true">`;
 }
 
-function tokenLogoSpinnerHtml() {
-  return `<span class="token-logo token-logo--loading" aria-hidden="true"><span class="loading-spinner"></span></span>`;
+function tokenLogoEmptySlotHtml() {
+  return `<span class="token-logo-slot token-logo-slot--pending" aria-hidden="true"></span>`;
 }
 
-function tokenIconShowsSpinner(t) {
-  const mint = t.mintAddress;
-  if (logoFailedMints.has(mint)) return false;
-  if (logoLoadingMints.has(mint) || logoPendingRepairMints.has(mint)) return true;
-  const icon = iconUrl(t);
-  if (!icon) return false;
-  return !logoImageLoadedMints.has(mint);
+function tokenLogoRepairPending(mint) {
+  return (
+    logoPendingRepairMints.has(mint) || logoLoadingMints.has(mint) || logoRepairInFlight.has(mint)
+  );
 }
 
 function tokenIconHtml(t) {
@@ -632,22 +798,27 @@ function tokenIconHtml(t) {
   }
   const icon = iconUrl(t);
   const mintAttr = escapeHtmlAttr(mint);
-  const showSpinner = tokenIconShowsSpinner(t);
 
   if (!icon) {
-    if (showSpinner) {
-      armLogoLoadTimeout(mint);
-      return `<span class="token-logo-slot">${tokenLogoSpinnerHtml()}</span>`;
+    if (t.skipLogoEnrich || tokenSkipsLogoRepair(mint)) {
+      return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
     }
+    if (tokenLogoRepairPending(mint)) return tokenLogoEmptySlotHtml();
     return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
   }
 
-  let inner = '';
-  if (showSpinner) inner += tokenLogoSpinnerHtml();
   const loaded = logoImageLoadedMints.has(mint);
-  inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" src="${escapeHtmlAttr(icon)}" alt="" loading="lazy" style="${loaded ? '' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
-  if (!loaded) armLogoLoadTimeout(mint);
-  return `<span class="token-logo-slot">${inner}</span>`;
+  const inFlight = logoSrcAssignedMints.has(mint) && !loaded && !logoFailedMints.has(mint);
+  const vybeLogo = vybeOriginLogoMints.has(mint) ? ' data-vybe-logo="1"' : '';
+  let inner = '';
+  if (loaded || inFlight) {
+    inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} src="${escapeHtmlAttr(icon)}" alt="" style="${loaded ? 'opacity:1' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
+    if (inFlight && !loaded) armLogoLoadTimeout(mint);
+  } else {
+    inner += `<img class="token-logo token-logo--img-loading" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} alt="" style="opacity:0" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
+  }
+  const slotClass = loaded ? 'token-logo-slot' : 'token-logo-slot token-logo-slot--pending';
+  return `<span class="${slotClass}">${inner}</span>`;
 }
 
 function updateTableAfterLogoChange() {
@@ -674,6 +845,7 @@ async function fetchRepairedLogo(mint, force) {
 
 async function repairTokenLogo(mint, options = {}) {
   if (logoRepairInFlight.has(mint)) return;
+  if (tokenSkipsLogoRepair(mint)) return;
   logoRepairAttemptedMints.add(mint);
   logoRepairInFlight.add(mint);
   logoLoadingMints.add(mint);
@@ -703,17 +875,20 @@ async function repairTokenLogo(mint, options = {}) {
   }
 }
 
-function queueTopLogoRepairs(tokens) {
+function prepareTopLogoRepairQueue(tokens) {
   const topN = getTopLogoRepairN();
-  if (topN <= 0) return;
+  if (topN <= 0) return [];
   const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
-  const candidates = sorted
-    .slice(0, topN)
-    .filter((item) => !item.logoUrl?.trim());
+  return sorted
+    .filter((item) => !item.logoUrl?.trim() && !item.skipLogoEnrich)
+    .slice(0, topN);
+}
+
+function queueTopLogoRepairs(tokens) {
+  const candidates = prepareTopLogoRepairQueue(tokens);
   for (const item of candidates) {
     logoPendingRepairMints.add(item.mintAddress);
   }
-  if (candidates.length > 0) updateTableAfterLogoChange();
   for (const item of candidates) {
     repairTokenLogo(item.mintAddress);
   }
@@ -1373,11 +1548,11 @@ const HOLDERS_PLACEHOLDER_ROW_COUNT = 16;
 
 function buildHoldersPlaceholderRows(count = HOLDERS_PLACEHOLDER_ROW_COUNT) {
   const dash = '—';
-  const logo = tokenLogoPlaceholderHtml();
+  const logo = tokenLogoEmptySlotHtml();
   return Array.from({ length: count }, (_, i) => `<tr class="holders-row holders-row--placeholder">
     <td class="holders-rank-col"><div class="holders-rank-cell"><span class="holders-rank-num">${i + 1}</span></div></td>
     <td class="holders-change-col">${dash}</td>
-    <td><div class="token-header"><span class="token-logo-slot">${logo}</span><div class="token-header-text"><div class="symbol">${dash}</div><div class="name">${dash}</div></div></div></td>
+    <td><div class="token-header">${logo}<div class="token-header-text"><div class="symbol">${dash}</div><div class="name">${dash}</div></div></div></td>
     <td class="num holders-portfolio-col">${dash}</td>
     <td class="holders-value-usd num">${dash}</td>
     <td class="num holders-amount-col">${dash}</td>
@@ -1396,7 +1571,7 @@ function renderHoldersTablePlaceholder() {
 
 function renderTable(tokens, totalUsd) {
   updateHoldersSummaryStrip(tokens);
-  const sorted = [...tokens].sort((a, b) => toNum(b.valueUsd) - toNum(a.valueUsd));
+  const sorted = [...tokens].sort(compareHoldersTableRows);
   holdersBody.innerHTML = sorted
     .map((t, i) => {
       const v = toNum(t.valueUsd);
@@ -1419,6 +1594,7 @@ function renderTable(tokens, totalUsd) {
       </tr>`;
     })
     .join('');
+  observeTokenLogosInTable();
 }
 
 function showError(msg) {
@@ -1435,72 +1611,6 @@ function clearError() {
   holdersError.textContent = '';
 }
 
-async function consumeWalletBalanceStream(url, onEvent) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
-    const text = await res.text();
-    let errMsg = `HTTP ${res.status}`;
-    try {
-      const body = JSON.parse(text);
-      if (body.error) errMsg = body.error;
-    } catch {
-      const trimmed = text.trim();
-      if (trimmed) errMsg = trimmed;
-    }
-    throw new Error(errMsg);
-  }
-  if (!res.body) throw new Error('Streaming response not supported');
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      onEvent(JSON.parse(trimmed));
-    }
-  }
-  const tail = buffer.trim();
-  if (tail) onEvent(JSON.parse(tail));
-}
-
-function createWalletBalanceStreamRenderer(wallet) {
-  let renderQueued = false;
-  return {
-    applyInitial(tokens) {
-      lastTokens = tokens;
-      this.scheduleRender();
-      queueTopLogoRepairs(lastTokens);
-    },
-    applyUpdate(token) {
-      const idx = lastTokens.findIndex((row) => row.mintAddress === token.mintAddress);
-      if (idx >= 0) lastTokens[idx] = token;
-      else lastTokens.push(token);
-      this.scheduleRender();
-    },
-    scheduleRender() {
-      if (renderQueued) return;
-      renderQueued = true;
-      requestAnimationFrame(() => {
-        renderQueued = false;
-        const totalUsd = lastTokens.reduce((sum, row) => sum + toNum(row.valueUsd), 0);
-        renderSummaryStats(lastTokens, wallet, totalUsd);
-        renderCharts(lastTokens, wallet, totalUsd);
-        renderTable(lastTokens, totalUsd);
-        if (!holdersTableViewSwitch?.checked) {
-          holdersMeta.textContent = formatHoldersMetaLoadedText(lastTokens.length);
-        }
-      });
-    },
-  };
-}
-
 async function fetchBalances() {
   const wallet = walletInput.value.trim();
   if (!wallet) {
@@ -1511,33 +1621,60 @@ async function fetchBalances() {
   fetchAllBtn.disabled = true;
   loadingIndicator.hidden = false;
   holdersLoading.hidden = false;
+  clearAllLogoLoadTimeouts();
+  resetVybeLogoLoadQueue();
   logoFailedMints.clear();
   logoRepairAttemptedMints.clear();
   logoPendingRepairMints.clear();
   logoLoadingMints.clear();
   logoRepairInFlight.clear();
   logoImageLoadedMints.clear();
-  clearAllLogoLoadTimeouts();
 
   try {
-    const limit = limitSelect.value || '100';
-    const url = `/api/wallets/${encodeURIComponent(wallet)}/token-balances?stream=1&enrich=1&limit=${limit}`;
-    const streamRenderer = createWalletBalanceStreamRenderer(wallet);
+    const limit = limitSelect.value || '1000';
+    const enrichLimit = getTopLogoRepairN();
+    const url = `/api/wallets/${encodeURIComponent(wallet)}/token-balances?enrich=1&limit=${limit}&enrichLimit=${enrichLimit}`;
     let walletPnlPromise = null;
+    if (window.WalletPnlSection?.isEnabled?.()) {
+      walletPnlPromise = window.WalletPnlSection.fetchForWallet(wallet);
+    } else {
+      window.WalletPnlSection?.resetPlaceholder?.();
+      window.WalletPnlTable?.resetPlaceholder?.();
+    }
 
-    await consumeWalletBalanceStream(url, (event) => {
-      if (event.event === 'initial') {
-        streamRenderer.applyInitial(event.tokens || []);
-        if (window.WalletPnlSection?.isEnabled?.()) {
-          walletPnlPromise = window.WalletPnlSection.fetchForWallet(wallet);
-        } else {
-          window.WalletPnlSection?.resetPlaceholder?.();
-          window.WalletPnlTable?.resetPlaceholder?.();
-        }
-      } else if (event.event === 'update' && event.token) {
-        streamRenderer.applyUpdate(event.token);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      const text = await res.text();
+      let errMsg = `HTTP ${res.status}`;
+      try {
+        const body = JSON.parse(text);
+        if (body.error) errMsg = body.error;
+      } catch {
+        const trimmed = text.trim();
+        if (trimmed) errMsg = trimmed;
       }
-    });
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+    const tokens = data.tokens || [];
+    recordVybeOriginLogos(tokens);
+    lastTokens = tokens;
+    applySuspiciousValueUsdMask(lastTokens);
+    const repairCandidates = prepareTopLogoRepairQueue(lastTokens);
+    for (const item of repairCandidates) {
+      logoPendingRepairMints.add(item.mintAddress);
+    }
+    const totalUsd = lastTokens.reduce((sum, row) => sum + toNum(row.valueUsd), 0);
+    renderSummaryStats(lastTokens, wallet, totalUsd);
+    renderCharts(lastTokens, wallet, totalUsd);
+    renderTable(lastTokens, totalUsd);
+    for (const item of repairCandidates) {
+      repairTokenLogo(item.mintAddress);
+    }
+    if (!holdersTableViewSwitch?.checked) {
+      holdersMeta.textContent = formatHoldersMetaLoadedText(lastTokens.length);
+    }
 
     if (walletPnlPromise) await walletPnlPromise;
     if (holdersTableViewSwitch?.checked) {

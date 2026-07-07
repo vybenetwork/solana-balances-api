@@ -16,6 +16,8 @@ import { createDataHttpClient, toHumanReadableError } from './api/client.js';
 import {
   listWalletTokenBalances,
   streamWalletTokenBalances,
+  TOP_LOGO_REPAIR_N,
+  TOP_LOGO_REPAIR_N_MAX,
   WALLET_TOKEN_BALANCE_LIMIT,
 } from './api/wallet-balance.js';
 import { resolveTokenMeta } from './api/resolve-token-meta.js';
@@ -84,7 +86,14 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
         ? Math.min(limitRaw, WALLET_TOKEN_BALANCE_LIMIT)
         : WALLET_TOKEN_BALANCE_LIMIT;
     const useStream = qBool(req, 'stream');
-    const enrich = qBool(req, 'enrich', !useStream);
+    const enrich = qBool(req, 'enrich', true);
+    const enrichLimitRaw = qNum(req, 'enrichLimit');
+    const enrichLimit =
+      enrichLimitRaw != null && enrichLimitRaw >= 0
+        ? Math.min(enrichLimitRaw, TOP_LOGO_REPAIR_N_MAX)
+        : enrich
+          ? TOP_LOGO_REPAIR_N
+          : 0;
 
     if (useStream) {
       const enrichStream = qBool(req, 'enrich', true);
@@ -104,13 +113,16 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
           res.write(`${JSON.stringify(event)}\n`);
         },
         () => closed,
-        { enrich: enrichStream },
+        { enrich: enrichStream, enrichLimit },
       );
       if (!closed) res.end();
       return;
     }
 
-    const tokens = await listWalletTokenBalances(dataHttp, ownerAddress, limit, { enrich });
+    const tokens = await listWalletTokenBalances(dataHttp, ownerAddress, limit, {
+      enrich,
+      enrichLimit,
+    });
     res.json({ tokens });
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;

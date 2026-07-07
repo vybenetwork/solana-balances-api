@@ -14,7 +14,7 @@ import {
   countVybeVerifiedZero7dHighValueMarks,
   getWalletTokenBalance,
   isVybeSuspiciousHighValueMark,
-  VYBE_SUSPICIOUS_VALUE_USD_MIN,
+  VYBE_SUSPICIOUS_PRICE_USD_MIN,
   VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT,
   VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC,
 } from '../src/api/wallet-balance.js';
@@ -52,10 +52,10 @@ fs.writeFileSync(outPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 const rows = data.data ?? [];
 const verifiedZero7dCount = countVybeVerifiedZero7dHighValueMarks(rows);
 const suspicious = rows
-  .filter((row) => isVybeSuspiciousHighValueMark(row, Number(row.valueUsd)))
+  .filter((row) => isVybeSuspiciousHighValueMark(row))
   .sort((a, b) => Number(b.valueUsd) - Number(a.valueUsd));
 
-const suspiciousPath = path.join(outDir, `vybe-token-balance-${wallet}-over-10k-usd.json`);
+const suspiciousPath = path.join(outDir, `vybe-token-balance-${wallet}-suspicious-unverified.json`);
 fs.writeFileSync(suspiciousPath, `${JSON.stringify(suspicious, null, 2)}\n`, 'utf8');
 
 console.log(
@@ -65,17 +65,17 @@ console.log(`[dump-vybe-wallet] rows=${rows.length} totalTokenCount=${data.total
 console.log(`[dump-vybe-wallet] totalTokenValueUsd=${data.totalTokenValueUsd ?? '?'}`);
 console.log(`[dump-vybe-wallet] wrote ${outPath}`);
 console.log(
-  `[dump-vybe-wallet] suspicious unverified (valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN.toLocaleString()} & zero 7d): ${suspicious.length} row(s) → ${suspiciousPath}`,
+  `[dump-vybe-wallet] skip-logo-enrich unverified (priceUsd >= $${VYBE_SUSPICIOUS_PRICE_USD_MIN} & zero 7d): ${suspicious.length} row(s) → ${suspiciousPath}`,
 );
 console.log(
-  `[dump-vybe-wallet] verified with zero 7d above $${VYBE_SUSPICIOUS_VALUE_USD_MIN.toLocaleString()} (excluded from suspicious file): ${verifiedZero7dCount}`,
+  `[dump-vybe-wallet] verified with zero 7d at priceUsd >= $${VYBE_SUSPICIOUS_PRICE_USD_MIN} (excluded from suspicious file): ${verifiedZero7dCount}`,
 );
 
 if (suspicious.length === 0) {
   console.log('[dump-vybe-wallet] no unverified holdings matching suspicious filter');
 } else {
   console.log(
-    `\n[dump-vybe-wallet] unverified valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN.toLocaleString()} with all-zero priceUsd7dTrend:`,
+    `\n[dump-vybe-wallet] unverified priceUsd >= $${VYBE_SUSPICIOUS_PRICE_USD_MIN} with all-zero priceUsd7dTrend:`,
   );
   for (const row of suspicious) {
     const label = String(row.symbol ?? row.name ?? '').trim() || row.mintAddress.slice(0, 8);
