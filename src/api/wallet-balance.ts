@@ -41,8 +41,8 @@ export const RPC_ONLY_ENRICH_LIMIT = TOP_LOGO_REPAIR_N;
 export const VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC = 'valueUsd';
 /** Vybe API max per request (see GET /v4/wallets/{owner}/token-balance). */
 export const VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT = 10_000;
-/** Exclude unverified Vybe marks at/above this price when 7d price history is all zero. */
-export const VYBE_SUSPICIOUS_PRICE_USD_MIN = 0.00001;
+/** Unverified Vybe marks above this USD holding value when 7d price history is all zero. */
+export const VYBE_SUSPICIOUS_VALUE_USD_MIN = 10;
 
 /** True when Vybe encodes a 7d point as zero (e.g. "0.000000"). */
 export function vybeTrendPriceIsZero(value: unknown): boolean {
@@ -58,31 +58,40 @@ export function vybeTokenBalanceHasZeroPriceHistory(row: VybeTokenBalance): bool
   return trend.every(vybeTrendPriceIsZero);
 }
 
-/** priceUsd at/above min with all-zero priceUsd7dTrend (verified or not). */
+/** Vybe row has no usable spot price (null, empty, zero, or non-finite). */
+export function vybeTokenBalanceHasMissingOrZeroPrice(row: VybeTokenBalance): boolean {
+  const raw = row.priceUsd;
+  if (raw == null || String(raw).trim() === '') return true;
+  const priceUsd = Number(raw);
+  return !Number.isFinite(priceUsd) || priceUsd <= 0;
+}
+
+/** valueUsd above min with all-zero priceUsd7dTrend (verified or not). */
 export function vybeTokenBalanceMatchesZero7dHighValueMark(
   row: VybeTokenBalance,
-  minPriceUsd = VYBE_SUSPICIOUS_PRICE_USD_MIN,
+  minValueUsd = VYBE_SUSPICIOUS_VALUE_USD_MIN,
 ): boolean {
-  const priceUsd = Number(row.priceUsd);
+  const valueUsd = Number(row.valueUsd);
   return (
-    Number.isFinite(priceUsd) &&
-    priceUsd >= minPriceUsd &&
+    Number.isFinite(valueUsd) &&
+    valueUsd > minValueUsd &&
     vybeTokenBalanceHasZeroPriceHistory(row)
   );
 }
 
-/** Unverified Vybe marks with suspicious price + zero 7d — keep in list, skip missing-logo fetch/repair. */
+/** Unverified: missing/zero price, or high valueUsd + zero 7d — skip logo enrich. */
 export function isVybeSuspiciousHighValueMark(row: VybeTokenBalance): boolean {
   if (row.verified === true) return false;
+  if (vybeTokenBalanceHasMissingOrZeroPrice(row)) return true;
   return vybeTokenBalanceMatchesZero7dHighValueMark(row);
 }
 
 export function countVybeVerifiedZero7dHighValueMarks(
   rows: VybeTokenBalance[],
-  minPriceUsd = VYBE_SUSPICIOUS_PRICE_USD_MIN,
+  minValueUsd = VYBE_SUSPICIOUS_VALUE_USD_MIN,
 ): number {
   return rows.filter(
-    (row) => row.verified === true && vybeTokenBalanceMatchesZero7dHighValueMark(row, minPriceUsd),
+    (row) => row.verified === true && vybeTokenBalanceMatchesZero7dHighValueMark(row, minValueUsd),
   ).length;
 }
 
@@ -739,14 +748,14 @@ export async function mergeWalletBalancesFromRpcAndVybe(
   const verifiedZero7dHighValueCount = countVybeVerifiedZero7dHighValueMarks(balance.data);
   if (verifiedZero7dHighValueCount > 0) {
     console.info(
-      `[wallet-balance] ${verifiedZero7dHighValueCount} verified token(s) with priceUsd >= $${VYBE_SUSPICIOUS_PRICE_USD_MIN} and zero 7d trend — kept (unverified-only filter)`,
+      `[wallet-balance] ${verifiedZero7dHighValueCount} verified token(s) with valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN} and zero 7d trend — kept (unverified-only filter)`,
     );
   }
 
   const skipLogoEnrichCount = balance.data.filter((row) => isVybeSuspiciousHighValueMark(row)).length;
   if (skipLogoEnrichCount > 0) {
     console.info(
-      `[wallet-balance] ${skipLogoEnrichCount} unverified token(s) with priceUsd >= $${VYBE_SUSPICIOUS_PRICE_USD_MIN} and zero 7d trend — skip logo enrich`,
+      `[wallet-balance] ${skipLogoEnrichCount} unverified token(s) with missing/zero price or valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN} + zero 7d — skip logo enrich`,
     );
   }
 
