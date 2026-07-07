@@ -30,6 +30,8 @@ export interface VybeTokenBalance {
   name?: string | null;
   logoUrl?: string | null;
   priceUsd?: string;
+  priceUsd1dChange?: string | null;
+  priceUsd7dTrend?: string[] | null;
   valueUsd?: string;
   verified?: boolean;
   [key: string]: unknown;

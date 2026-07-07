@@ -3,7 +3,7 @@
  */
 
 import type { AxiosInstance } from 'axios';
-import type { VybeToken, VybeWalletTokenBalanceResponse } from '../types/api.js';
+import type { VybeToken, VybeTokenBalance, VybeWalletTokenBalanceResponse } from '../types/api.js';
 import { withRetry } from './client.js';
 import { getToken } from './tokens.js';
 import { toVybeSwapMint } from './sol-mints.js';
@@ -31,10 +31,54 @@ export const TOP_LOGO_REPAIR_N = 20;
 
 export const RPC_ONLY_ENRICH_LIMIT = WALLET_TOKEN_BALANCE_LIMIT;
 
+/** Vybe GET /v4/wallets/{owner}/token-balance — sort top holdings by USD value. */
+export const VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC = 'valueUsd';
+/** Vybe API max per request (see GET /v4/wallets/{owner}/token-balance). */
+export const VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT = 10_000;
+/** Reject Vybe USD marks above this when 7d price history is all zero. */
+export const VYBE_SUSPICIOUS_VALUE_USD_MIN = 10_000;
+
+export function vybeTokenBalanceHasZeroPriceHistory(row: VybeTokenBalance): boolean {
+  const trend = row.priceUsd7dTrend;
+  if (!Array.isArray(trend) || trend.length === 0) return true;
+  return trend.every((p) => !Number(p));
+}
+
+/** valueUsd above min with all-zero priceUsd7dTrend (verified or not). */
+export function vybeTokenBalanceMatchesZero7dHighValueMark(
+  row: VybeTokenBalance,
+  valueUsd: number,
+  minUsd = VYBE_SUSPICIOUS_VALUE_USD_MIN,
+): boolean {
+  return (
+    Number.isFinite(valueUsd) &&
+    valueUsd > minUsd &&
+    vybeTokenBalanceHasZeroPriceHistory(row)
+  );
+}
+
+/** Unverified only — bogus Vybe marks to zero out before enrichment. */
+export function isVybeSuspiciousHighValueMark(row: VybeTokenBalance, valueUsd: number): boolean {
+  return vybeTokenBalanceMatchesZero7dHighValueMark(row, valueUsd) && row.verified !== true;
+}
+
+export function countVybeVerifiedZero7dHighValueMarks(
+  rows: VybeTokenBalance[],
+  minUsd = VYBE_SUSPICIOUS_VALUE_USD_MIN,
+): number {
+  return rows.filter(
+    (row) => row.verified === true && vybeTokenBalanceMatchesZero7dHighValueMark(row, Number(row.valueUsd), minUsd),
+  ).length;
+}
+
 export interface GetWalletTokenBalanceParams {
   ownerAddress: string;
   mintAddresses?: string[];
   includeNoPriceBalance?: boolean;
+  sortByDesc?: string;
+  sortByAsc?: string;
+  limit?: number;
+  page?: number;
 }
 
 export interface WalletBalanceListItem {
@@ -77,14 +121,20 @@ export async function getWalletTokenBalance(
   if (!ownerAddress) throw new Error('Wallet address required');
 
   return withRetry(async () => {
+    const query: Record<string, string | number | boolean | string[] | undefined> = {
+      includeNoPriceBalance: params.includeNoPriceBalance ?? true,
+      vybeTokenFilter: false,
+    };
+    if (params.mintAddresses?.length) query.mintAddresses = params.mintAddresses;
+    if (params.sortByAsc) query.sortByAsc = params.sortByAsc;
+    else query.sortByDesc = params.sortByDesc ?? VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC;
+    if (params.limit != null && params.limit >= 0) query.limit = params.limit;
+    if (params.page != null && params.page >= 0) query.page = params.page;
+
     const { data } = await http.get<VybeWalletTokenBalanceResponse>(
       `/v4/wallets/${encodeURIComponent(ownerAddress)}/token-balance`,
       {
-        params: {
-          mintAddresses: params.mintAddresses,
-          includeNoPriceBalance: params.includeNoPriceBalance ?? true,
-          vybeTokenFilter: false,
-        },
+        params: query,
         paramsSerializer: {
           indexes: null,
         },
@@ -519,6 +569,8 @@ export async function mergeWalletBalancesFromRpcAndVybe(
     getWalletTokenBalance(http, {
       ownerAddress,
       includeNoPriceBalance: true,
+      sortByDesc: VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC,
+      limit: Math.min(limit, VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT),
     }).catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[wallet-balance] Vybe token list failed, using RPC-only: ${msg}`);
@@ -532,6 +584,13 @@ export async function mergeWalletBalancesFromRpcAndVybe(
   }
 
   const balance = balanceResult ?? { data: [] };
+
+  const verifiedZero7dHighValueCount = countVybeVerifiedZero7dHighValueMarks(balance.data);
+  if (verifiedZero7dHighValueCount > 0) {
+    console.info(
+      `[wallet-balance] ${verifiedZero7dHighValueCount} verified token(s) above $${VYBE_SUSPICIOUS_VALUE_USD_MIN.toLocaleString()} with zero 7d trend — kept (unverified-only filter)`,
+    );
+  }
 
   const items = balance.data
     .map((row) => {
@@ -562,6 +621,9 @@ export async function mergeWalletBalancesFromRpcAndVybe(
           valueUsd = 0;
         }
       } else if (!Number.isFinite(valueUsd)) {
+        valueUsd = 0;
+      }
+      if (isVybeSuspiciousHighValueMark(row, valueUsd)) {
         valueUsd = 0;
       }
       const enrichmentPending =
