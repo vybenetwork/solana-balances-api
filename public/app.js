@@ -84,7 +84,7 @@ const logoImageLoadedMints = new Set();
 const logoImgTimeouts = new Map();
 const VYBE_LOGO_LOAD_STAGGER_MS = 20;
 /** Matches server skipLogoEnrich filter — hide bogus USD above this in the GUI. */
-const SUSPICIOUS_MASK_VALUE_USD_MIN = 10;
+const SUSPICIOUS_MASK_VALUE_USD_MIN = 100;
 const vybeOriginLogoMints = new Set();
 const vybeLogoLoadQueue = [];
 const vybeLogoLoadQueuedMints = new Set();

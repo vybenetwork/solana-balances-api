@@ -42,7 +42,7 @@ export const VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC = 'valueUsd';
 /** Vybe API max per request (see GET /v4/wallets/{owner}/token-balance). */
 export const VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT = 10_000;
 /** Unverified Vybe marks above this USD holding value when 7d price history is all zero. */
-export const VYBE_SUSPICIOUS_VALUE_USD_MIN = 10;
+export const VYBE_SUSPICIOUS_VALUE_USD_MIN = 100;
 
 /** True when Vybe encodes a 7d point as zero (e.g. "0.000000"). */
 export function vybeTrendPriceIsZero(value: unknown): boolean {
