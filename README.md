@@ -2,8 +2,8 @@
 
 <p align="center">
 
-[![Demo](https://img.shields.io/badge/Demo-Solana%20Wallet%20Balances%20API%20live%20app-22c55e?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-wallet-balances-api.vybenetwork.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-1f6feb?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-wallet-balances-api)
+[![Demo](https://img.shields.io/badge/Demo-Solana%20Wallet%20Balances%20API%20live%20app-166534?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-wallet-balances-api.vybenetwork.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-wallet-balances-api)
 [![Wallet balances guide](https://img.shields.io/badge/Guides-Realtime%20wallet%20balances-3b82f6?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/token-balances)
 [![Wallet token balance API](https://img.shields.io/badge/Endpoint-Wallet%20token%20balance-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)
 [![Token details API](https://img.shields.io/badge/Endpoint-Token%20details-8b5cf6?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_token_details_v4)
