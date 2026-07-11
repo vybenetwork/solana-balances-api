@@ -2451,11 +2451,14 @@ button:not(.vybe-action-btn):disabled {
 }
 
 .token-stats-col--overview .token-stats-group {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  align-self: start;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .token-stats-col--overview .token-stat-rows-stack,
