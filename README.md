@@ -26,6 +26,7 @@ Try the live demo: https://solana-wallet-balances-api.vybenetwork.com
 - **[Wallet token balance endpoint →](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)**
 - **[Token details endpoint →](https://docs.vybenetwork.com/reference/get_token_details_v4)**
 - **[GitHub repo →](https://github.com/vybenetwork/solana-wallet-balances-api)**
+- **[Telegram →](https://t.me/VybeNetwork_Official)**
 - **[X →](https://x.com/Vybe_Network)**
 
 ---
@@ -261,6 +262,7 @@ async function fetchWalletBalances(ownerAddress: string) {
 
 ## Support
 
+- **Telegram:** [VybeNetwork Official](https://t.me/VybeNetwork_Official)
 - **X:** [@Vybe_Network](https://x.com/Vybe_Network)
 - **GitHub:** [solana-wallet-balances-api](https://github.com/vybenetwork/solana-wallet-balances-api)
 - **Support ticket:** [Submit a ticket via vybenetwork.com](https://vybenetwork.com)
