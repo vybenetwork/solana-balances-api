@@ -939,8 +939,9 @@ function renderTierCard(args) {
     args.pieRankKey && typeof holdersPieRankIconSvg === 'function'
       ? `<span class="token-tier-card__title-icon holders-summary-label-icon holders-summary-label-icon--${args.pieRankKey}" aria-hidden="true">${holdersPieRankIconSvg(args.pieRankKey, 'token-tier-card__title-icon__svg')}</span>`
       : '';
+  const placeholderClass = args.placeholder ? ' token-tier-card--placeholder' : '';
   return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
-    <article class="token-tier-card" style="--tier-accent:${args.accent};--tier-swatch:${args.swatchColor}">
+    <article class="token-tier-card${placeholderClass}" style="--tier-accent:${args.accent};--tier-swatch:${args.swatchColor}">
       <h4 class="token-tier-card__title">${iconHtml}<span class="token-tier-card__title-text">${t}</span></h4>
       <ul class="token-tier-card__metrics">
         <li class="token-tier-metric">
@@ -967,8 +968,10 @@ function renderTierCardPlaceholder(title, accent, swatch, pieRankKey) {
     accent,
     swatchColor: swatch,
     slicePct: 0,
+    shareLabel: ' of tokens',
     usdLine: '—',
     amountLine: '—',
+    placeholder: true,
   });
 }
 
@@ -1461,8 +1464,12 @@ function renderCharts(tokens, wallet, totalUsd) {
   });
 
   setSupplyLegendGrid(portfolioLegend, 4);
-  portfolioLegend.innerHTML = PRICE_CHANGE_PIE_TITLES.map((title, i) =>
-    renderTierCard({
+  portfolioLegend.innerHTML = PRICE_CHANGE_PIE_TITLES.map((title, i) => {
+    const count = Number(bucket.counts[i]) || 0;
+    if (count <= 0) {
+      return renderTierCardPlaceholder(title, PRICE_CHANGE_PIE_HEX[i], PRICE_CHANGE_PIE_HEX[i], PRICE_CHANGE_PIE_KEYS[i]);
+    }
+    return renderTierCard({
       title,
       pieRankKey: PRICE_CHANGE_PIE_KEYS[i],
       accent: PRICE_CHANGE_PIE_HEX[i],
@@ -1470,9 +1477,9 @@ function renderCharts(tokens, wallet, totalUsd) {
       slicePct: bucket.slices[i],
       shareLabel: ' of tokens',
       usdLine: formatUsd(bucket.usd[i]),
-      amountLine: `${bucket.counts[i]} token(s)`,
-    }),
-  ).join('');
+      amountLine: `${count} token(s)`,
+    });
+  }).join('');
 
   portfolioPieTitle.textContent = 'Tokens ranked by profitability';
   portfolioPieLede.textContent = `${tokens.length} tokens · ${formatUsd(totalUsd)} estimated portfolio value`;
