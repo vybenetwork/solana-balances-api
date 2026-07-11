@@ -8,7 +8,6 @@
 [![Wallet token balance API](https://img.shields.io/badge/Endpoint-Wallet%20token%20balance-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)
 [![Token details API](https://img.shields.io/badge/Endpoint-Token%20details-8b5cf6?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_token_details_v4)
 [![X](https://img.shields.io/badge/X-Vybe__Network-000000?style=for-the-badge&logo=x)](https://x.com/Vybe_Network)
-[![Telegram](https://img.shields.io/badge/Telegram-VybeNetwork-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/VybeNetwork_Official)
 </p>
 
 **Solana Wallet Balances API:** Solana wallet balances API: fetch SPL & Token-2022 holdings with on-chain RPC amounts, Vybe metadata, and live USD portfolio values for any Solana wallet. Use this project as a reference implementation or starter kit for portfolio UIs, wallet dashboards, and balance enrichment pipelines.
@@ -27,7 +26,6 @@ Try the live demo: https://solana-wallet-balances-api.vybenetwork.com
 - **[Wallet token balance endpoint →](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)**
 - **[Token details endpoint →](https://docs.vybenetwork.com/reference/get_token_details_v4)**
 - **[GitHub repo →](https://github.com/vybenetwork/solana-wallet-balances-api)**
-- **[Telegram →](https://t.me/VybeNetwork_Official)**
 - **[X →](https://x.com/Vybe_Network)**
 
 ---
@@ -263,7 +261,6 @@ async function fetchWalletBalances(ownerAddress: string) {
 
 ## Support
 
-- **Telegram:** [VybeNetwork Official](https://t.me/VybeNetwork_Official)
 - **X:** [@Vybe_Network](https://x.com/Vybe_Network)
 - **GitHub:** [solana-wallet-balances-api](https://github.com/vybenetwork/solana-wallet-balances-api)
 - **Support ticket:** [Submit a ticket via vybenetwork.com](https://vybenetwork.com)
