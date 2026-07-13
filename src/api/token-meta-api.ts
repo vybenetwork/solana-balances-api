@@ -7,7 +7,7 @@ import {
   type CachedTokenMeta,
 } from '../token-icon-cache.js';
 
-export type PriceResolveSource = 'Vybe' | 'Jupiter' | 'Pumpfun-API';
+export type PriceResolveSource = 'Vybe' | 'Jupiter' | 'Pumpfun-API' | 'RPC';
 
 export function cachedMetaToApiResponse(
   meta: CachedTokenMeta | null | undefined,

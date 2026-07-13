@@ -34,7 +34,7 @@ export interface CachedTokenMeta {
   /** Epoch ms when price fields were last fetched for quote TTL */
   priceFetchedAt?: number;
   /** Which resolver last fetched the spot price (for TTL cache hits). */
-  priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API';
+  priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API' | 'RPC';
   marketCapUsd?: number;
   liquidityUsd?: number;
   category?: string;
@@ -99,6 +99,11 @@ function extFromContentType(ct: string): string {
 function isLocalIconUrl(url: string | undefined): boolean {
   if (!url) return false;
   return url.startsWith(PUBLIC_ICON_WEB_PREFIX) || url.startsWith(RUNTIME_ICON_WEB_PREFIX);
+}
+
+/** True when logoUrl is a path served by this app (not a remote CDN). */
+export function isLocalCachedIconUrl(url: string | null | undefined): boolean {
+  return isLocalIconUrl(url?.trim() || undefined);
 }
 
 function isImageBuffer(buf: Buffer): boolean {
@@ -373,7 +378,8 @@ export function mergePriceFieldsOnly(
     priceSource:
       token.priceSource === 'Vybe' ||
       token.priceSource === 'Jupiter' ||
-      token.priceSource === 'Pumpfun-API'
+      token.priceSource === 'Pumpfun-API' ||
+      token.priceSource === 'RPC'
         ? token.priceSource
         : existing.priceSource,
   };
@@ -436,7 +442,8 @@ export async function cacheTokenMetaFromVybe(
     priceSource:
       token.priceSource === 'Vybe' ||
       token.priceSource === 'Jupiter' ||
-      token.priceSource === 'Pumpfun-API'
+      token.priceSource === 'Pumpfun-API' ||
+      token.priceSource === 'RPC'
         ? token.priceSource
         : undefined,
     marketCapUsd:

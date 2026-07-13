@@ -670,11 +670,16 @@ function formatOverviewCountSuffixHtml(count, suffix) {
   return `${escapeHtmlText(n.toLocaleString())} <span class="token-stat-count-suffix">${escapeHtmlText(suffix)}</span>`;
 }
 
+function isLocalCachedLogoUrl(url) {
+  const u = String(url || '').trim();
+  return u.startsWith('/cached/token-icons/') || u.startsWith('/data/token-icons/');
+}
+
 function iconUrl(item) {
   const u = item.logoUrl?.trim();
   if (!u) return '';
-  if (u.startsWith('http') || u.startsWith('/')) return u;
-  return `/${u.replace(/^\//, '')}`;
+  // Only render logos served by this app — never remote CDNs (shdw-drive, etc.).
+  return isLocalCachedLogoUrl(u) ? u : '';
 }
 
 function clearLogoLoadTimeout(mint) {
@@ -867,7 +872,7 @@ async function fetchRepairedLogo(mint, force) {
     if (!res.ok) return null;
     const data = await res.json();
     const logo = data.logoUrl?.trim();
-    return logo || null;
+    return logo && isLocalCachedLogoUrl(logo) ? logo : null;
   } catch {
     return null;
   } finally {
@@ -912,7 +917,7 @@ function prepareTopLogoRepairQueue(tokens) {
   if (topN <= 0) return [];
   const sorted = [...tokens].sort((a, b) => effectiveValueUsd(b) - effectiveValueUsd(a));
   return sorted
-    .filter((item) => !item.logoUrl?.trim() && !item.skipLogoEnrich)
+    .filter((item) => !isLocalCachedLogoUrl(item.logoUrl) && !item.skipLogoEnrich)
     .slice(0, topN);
 }
 

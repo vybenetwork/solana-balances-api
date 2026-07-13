@@ -5,7 +5,6 @@
 import {
   ensureTokenIconCached,
   getCachedTokenIconWebPath,
-  getCachedTokenMetaFromDisk,
   hasCachedTokenIcon,
   readTokenMetaCache,
   removeTokenIconFiles,
@@ -36,7 +35,7 @@ export async function repairTokenIcon(
   if (force || pumpMint) {
     removeTokenIconFiles(m);
   } else if (hasCachedTokenIcon(m)) {
-    return getCachedTokenIconWebPath(m) ?? getCachedTokenMetaFromDisk(m)?.logoUrl;
+    return getCachedTokenIconWebPath(m) ?? undefined;
   }
 
   const existing = getCachedTokenIconWebPath(m);
@@ -44,7 +43,7 @@ export async function repairTokenIcon(
 
   const remoteUrl = await fetchRemoteLogoUrlForMint(m);
   if (!remoteUrl) {
-    return getCachedTokenIconWebPath(m) ?? getCachedTokenMetaFromDisk(m)?.logoUrl;
+    return getCachedTokenIconWebPath(m) ?? undefined;
   }
 
   const local = await ensureTokenIconCached(m, remoteUrl);

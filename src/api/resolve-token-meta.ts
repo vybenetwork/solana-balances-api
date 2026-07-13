@@ -71,7 +71,11 @@ function metaSourceOrder(
   mint: string,
   disk: CachedTokenMeta | null,
   skipVybe: boolean,
+  preferVybe: boolean,
 ): MetaSource[] {
+  if (preferVybe) {
+    return skipVybe ? ['jupiter'] : ['vybe', 'jupiter'];
+  }
   if (isPumpFunMint(mint)) {
     const pumpOrder: MetaSource[] = skipVybe || shouldSkipVybeMeta(disk, mint)
       ? ['pumpfun']
@@ -187,6 +191,8 @@ export interface ResolveTokenMetaResult {
 export interface ResolveTokenMetaOptions {
   /** Skip Vybe token-details when wallet/balance data already shows mint-as-name stub. */
   skipVybe?: boolean;
+  /** Force Vybe token-details first, then Jupiter (holdings / DeFi missing-symbol enrich). */
+  preferVybe?: boolean;
 }
 
 /** Resolve token metadata for API/search with mint-specific source order. */
@@ -206,8 +212,9 @@ export async function resolveTokenMeta(
 
   const solPriceUsd = solPriceUsdFromDisk();
   const skipVybe = options.skipVybe === true;
+  const preferVybe = options.preferVybe === true;
 
-  for (const metaSource of metaSourceOrder(m, disk, skipVybe)) {
+  for (const metaSource of metaSourceOrder(m, disk, skipVybe, preferVybe)) {
     disk = getCachedTokenMetaFromDisk(m);
     if (!metaNeedsEnrichment(m, disk)) break;
     if (await applyMetaSource(http, m, metaSource, solPriceUsd, disk?.decimals)) {

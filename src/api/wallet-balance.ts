@@ -14,6 +14,14 @@ import type { RpcMintBalance } from './wallet-rpc-balance.js';
 import { WALLET_TOKEN_BALANCE_LIMIT } from '../wallet-balance-limit.js';
 import { isMintLikeLabel } from './token-label.js';
 import { getCachedTokenMetaFromDisk, cacheTokenMetaFromVybe } from '../token-icon-cache.js';
+import {
+  hydrateWalletHoldingsFromDiskCache,
+  isBadHoldingsLabel,
+  preferLocalHoldingsLogo,
+  clientHoldingsLogoUrl,
+} from './hydrate-wallet-holdings.js';
+import { cacheMintProgramLabelFallback } from './mint-program-label.js';
+import { materializeItemLogosLocal, materializeTokenLogoLocal } from './materialize-token-logo.js';
 
 export { WALLET_TOKEN_BALANCE_LIMIT };
 
@@ -120,9 +128,11 @@ export function walletItemHasMissingOrZeroPrice(item: WalletBalanceListItem): bo
 }
 
 export function maskSuspiciousWalletBalanceItem(item: WalletBalanceListItem): WalletBalanceListItem {
-  if (!shouldMaskSuspiciousWalletUsdFields(item)) return item;
+  const logoUrl = clientHoldingsLogoUrl(item.mintAddress, item.logoUrl);
+  const withLocalLogo = logoUrl === item.logoUrl ? item : { ...item, logoUrl };
+  if (!shouldMaskSuspiciousWalletUsdFields(withLocalLogo)) return withLocalLogo;
   return {
-    ...item,
+    ...withLocalLogo,
     valueUsd: 0,
     valueSol: undefined,
     priceUsd: undefined,
@@ -159,7 +169,7 @@ export interface WalletBalanceListItem {
   valueUsd: number;
   valueSol?: number;
   verified: boolean;
-  priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API';
+  priceSource?: 'Vybe' | 'Jupiter' | 'Pumpfun-API' | 'RPC';
   enrichmentPending?: boolean;
   /** Skip Jupiter/pump logo repair — suspicious unverified Vybe mark. */
   skipLogoEnrich?: boolean;
@@ -658,36 +668,96 @@ async function enrichWalletItemMeta(
   item: WalletBalanceListItem,
   stats?: WalletBalanceEnrichStats,
 ): Promise<WalletBalanceListItem> {
-  const hasLogo = Boolean(item.logoUrl?.trim());
+  const diskFirst = hydrateWalletHoldingsFromDiskCache([item]).items[0] ?? item;
+  const hasLogo = Boolean(diskFirst.logoUrl?.trim());
   const hasUsd =
-    (Number.isFinite(item.valueUsd) && item.valueUsd > 0) ||
-    (item.valueSol != null && item.valueSol > 0);
-  if (hasLogo && hasUsd && !item.enrichmentPending) return attachPriceSource(item);
-  if (item.skipLogoEnrich) return attachPriceSource(item);
+    (Number.isFinite(diskFirst.valueUsd) && diskFirst.valueUsd > 0) ||
+    (diskFirst.valueSol != null && diskFirst.valueSol > 0);
+  const badSymbol = isBadHoldingsLabel(diskFirst.symbol, diskFirst.mintAddress);
+  if (hasLogo && hasUsd && !badSymbol && !diskFirst.enrichmentPending) {
+    return attachPriceSource(diskFirst);
+  }
+  if (diskFirst.skipLogoEnrich) return attachPriceSource(diskFirst);
 
   if (stats) stats.metaLookup += 1;
-  const resolved = await resolveTokenMeta(http, item.mintAddress, { skipVybe: true });
+  const resolveOpts = badSymbol ? { preferVybe: true as const } : { skipVybe: true as const };
+  let resolved = await resolveTokenMeta(http, diskFirst.mintAddress, resolveOpts);
+
+  if (!resolved || isBadHoldingsLabel(resolved.meta.symbol, diskFirst.mintAddress)) {
+    try {
+      const asset = await fetchJupiterAsset(toVybeSwapMint(diskFirst.mintAddress));
+      const symbol = asset?.symbol?.trim() || '';
+      if (symbol && !isMintLikeLabel(symbol, diskFirst.mintAddress)) {
+        const meta = await cacheTokenMetaFromVybe(diskFirst.mintAddress, {
+          mintAddress: diskFirst.mintAddress,
+          symbol,
+          name: asset?.name?.trim() || symbol,
+          decimals: asset?.decimals ?? diskFirst.decimals,
+          logoUrl: asset?.logoUrl || undefined,
+          verified: asset?.verified === true,
+          isVerified: asset?.verified === true,
+          priceFetchedAt: Date.now(),
+          priceSource: 'Jupiter',
+        });
+        resolved = { meta, source: 'Jupiter' };
+      }
+    } catch {
+      /* continue to program label */
+    }
+  }
+
+  if (!resolved || isBadHoldingsLabel(resolved.meta.symbol, diskFirst.mintAddress)) {
+    const fallback = await cacheMintProgramLabelFallback(diskFirst.mintAddress);
+    if (fallback) {
+      resolved = { meta: fallback, source: 'RPC' };
+    }
+  }
+
   if (!resolved) {
-    return { ...item, enrichmentPending: false };
+    return {
+      ...diskFirst,
+      logoUrl: preferLocalHoldingsLogo(diskFirst.mintAddress, diskFirst.logoUrl),
+      enrichmentPending: false,
+    };
   }
 
   const { meta } = resolved;
-  let valueUsd = item.valueUsd;
-  let valueSol = item.valueSol;
+  let valueUsd = diskFirst.valueUsd;
+  let valueSol = diskFirst.valueSol;
   if (!hasUsd && typeof meta.price === 'number' && meta.price > 0) {
-    valueUsd = holdingValueUsd(meta.price, item.amountUi);
+    valueUsd = holdingValueUsd(meta.price, diskFirst.amountUi);
     valueSol = undefined;
   }
+
+  const nextSymbol =
+    meta.symbol?.trim() && !isBadHoldingsLabel(meta.symbol, diskFirst.mintAddress)
+      ? meta.symbol.trim()
+      : diskFirst.symbol;
+  const nextName =
+    meta.name?.trim() && !isBadHoldingsLabel(meta.name, diskFirst.mintAddress)
+      ? meta.name.trim()
+      : diskFirst.name;
 
   return attachPriceSource(
     mergeVybeFields(
       {
-        ...item,
-        symbol: meta.symbol?.trim() || item.symbol,
-        name: meta.name?.trim() || item.name,
-        logoUrl: meta.logoUrl?.trim() || item.logoUrl,
-        decimals: meta.decimals ?? item.decimals,
-        verified: meta.isVerified ?? item.verified,
+        ...diskFirst,
+        symbol: nextSymbol,
+        name: nextName,
+        logoUrl:
+          clientHoldingsLogoUrl(
+            diskFirst.mintAddress,
+            preferLocalHoldingsLogo(diskFirst.mintAddress, meta.logoUrl) ||
+              preferLocalHoldingsLogo(diskFirst.mintAddress, diskFirst.logoUrl) ||
+              meta.logoUrl?.trim() ||
+              diskFirst.logoUrl,
+          ) ||
+          (await materializeTokenLogoLocal(
+            diskFirst.mintAddress,
+            meta.logoUrl?.trim() || diskFirst.logoUrl,
+          )),
+        decimals: meta.decimals ?? diskFirst.decimals,
+        verified: meta.isVerified ?? diskFirst.verified,
         valueUsd,
         valueSol,
         priceSource: meta.priceSource ?? resolved.source,
@@ -884,12 +954,10 @@ export async function mergeWalletBalancesFromRpcAndVybe(
       const skipLogoEnrich = isVybeSuspiciousHighValueMark(row, amounts.amountUi);
       const rawSymbol = row.symbol?.trim() ?? '';
       const rawName = row.name?.trim() ?? '';
-      const symbol =
-        rawSymbol && !isMintLikeLabel(rawSymbol, mintAddress)
-          ? rawSymbol
-          : mintAddress.slice(0, 6);
-      const name =
-        rawName && !isMintLikeLabel(rawName, mintAddress) ? rawName : symbol;
+      const rawSymbolBad = isBadHoldingsLabel(rawSymbol, mintAddress);
+      const rawNameBad = isBadHoldingsLabel(rawName, mintAddress);
+      const symbol = !rawSymbolBad ? rawSymbol : mintAddress.slice(0, 6);
+      const name = !rawNameBad ? rawName : symbol;
       let valueUsd = Number(row.valueUsd);
       if (rpcOk) {
         const priceUsd = Number(row.priceUsd);
@@ -905,12 +973,13 @@ export async function mergeWalletBalancesFromRpcAndVybe(
         !skipLogoEnrich &&
         (valueUsd <= 0 ||
           !row.logoUrl?.trim() ||
-          isMintLikeLabel(symbol, mintAddress));
+          rawSymbolBad ||
+          isBadHoldingsLabel(symbol, mintAddress));
       const item: WalletBalanceListItem = maskSuspiciousWalletBalanceItem({
         mintAddress,
         symbol,
         name,
-        logoUrl: row.logoUrl?.trim() || null,
+        logoUrl: preferLocalHoldingsLogo(mintAddress, row.logoUrl?.trim() || null),
         decimals: amounts.decimals,
         amountUi: amounts.amountUi,
         amountExact: amounts.amountExact,
@@ -967,10 +1036,14 @@ export async function mergeWalletBalancesFromRpcAndVybe(
   }
 
   const resultItems = sortWalletBalanceItems(items).slice(0, limit);
-  logMergeResult(label, mergeStart, balance.data.length, skipLogoEnrichCount, resultItems.length);
+  const { items: hydratedItems, hydrated } = hydrateWalletHoldingsFromDiskCache(resultItems);
+  if (hydrated > 0) {
+    console.info(`[wallet-balance] ${label} disk-hydrate applied to ${hydrated} holding(s)`);
+  }
+  logMergeResult(label, mergeStart, balance.data.length, skipLogoEnrichCount, hydratedItems.length);
 
   return {
-    items: resultItems,
+    items: hydratedItems,
     rpcOnlyToEnrich,
   };
 }
@@ -1004,7 +1077,7 @@ async function enrichWalletBalanceList(
   const sorted = sortWalletBalanceItems(items);
   if (enrichLimit <= 0) return sorted;
 
-  const eligible = sorted.filter((item) => !item.skipLogoEnrich);
+  const eligible = sorted.filter((item) => !item.skipLogoEnrich && needsEnrichment(item));
   const toEnrich = eligible.slice(0, enrichLimit);
   const enrichStart = Date.now();
   const stats: WalletBalanceEnrichStats = { vybeHydrated: 0, metaLookup: 0, vybeTokenGet: 0 };
@@ -1019,11 +1092,12 @@ async function enrichWalletBalanceList(
 function needsEnrichment(item: WalletBalanceListItem): boolean {
   if (item.skipLogoEnrich) return false;
   if (item.enrichmentPending) return true;
+  if (isBadHoldingsLabel(item.symbol, item.mintAddress)) return true;
   const hasUsd =
     (Number.isFinite(item.valueUsd) && item.valueUsd > 0) ||
     (item.valueSol != null && item.valueSol > 0);
-  const hasLogo = Boolean(item.logoUrl?.trim());
-  return !hasUsd || !hasLogo;
+  const hasLocalLogo = Boolean(clientHoldingsLogoUrl(item.mintAddress, item.logoUrl));
+  return !hasUsd || !hasLocalLogo;
 }
 
 /** Stream balances: initial merge, then per-token enrichment updates. */
@@ -1041,19 +1115,37 @@ export async function streamWalletTokenBalances(
   const { items, rpcOnlyToEnrich } = await mergeWalletBalancesFromRpcAndVybe(http, ownerAddress, limit);
   if (isCancelled?.()) return;
   emit({ event: 'initial', tokens: maskSuspiciousWalletBalanceList(items) });
-  // Yield so the initial NDJSON frame can flush before slow rpc-only enrich.
+  // Yield so the initial NDJSON frame can flush before slow enrich / logo download.
   await new Promise<void>((resolve) => setImmediate(resolve));
 
+  let working = items;
+  // After initial: download remote logos to disk and push updates (UI already unlocked).
+  const logoLimit = Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX);
+  if (logoLimit > 0) {
+    const logoStart = Date.now();
+    working = await materializeItemLogosLocal(working, {
+      limit: logoLimit,
+      concurrency: 8,
+      allowRepair: false,
+      onResolved: async (item) => {
+        if (isCancelled?.()) return;
+        emit({ event: 'update', token: maskSuspiciousWalletBalanceItem(item) });
+      },
+    });
+    console.info(
+      `[wallet-balance] ${label} logo-materialize done in ${Date.now() - logoStart}ms (cap ${logoLimit})`,
+    );
+  }
+
   if (enrichLimit > 0 || rpcOnlyToEnrich.length > 0) {
-    let working = items;
     if (enrichLimit > 0) {
       const metaEnrichMints = new Set(
-        sortWalletBalanceItems(items)
-          .filter((item) => !item.skipLogoEnrich)
+        sortWalletBalanceItems(working)
+          .filter((item) => !item.skipLogoEnrich && needsEnrichment(item))
           .slice(0, enrichLimit)
           .map((item) => item.mintAddress),
       );
-      working = await enrichWalletBalanceList(http, items, enrichLimit, label);
+      working = await enrichWalletBalanceList(http, working, enrichLimit, label);
       for (const item of working) {
         if (isCancelled?.()) return;
         if (metaEnrichMints.has(item.mintAddress)) {
@@ -1089,6 +1181,11 @@ export async function listWalletTokenBalances(
   let result = items.slice(0, limit);
   if (!enrich) return maskSuspiciousWalletBalanceList(result);
 
+  result = await materializeItemLogosLocal(result, {
+    limit: Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX),
+    concurrency: 8,
+    allowRepair: false,
+  });
   result = await enrichWalletBalanceList(http, result, enrichLimit, label);
   // RPC-only enrich runs after initial load via streamWalletTokenBalances.
   return maskSuspiciousWalletBalanceList(sortWalletBalanceItems(result).slice(0, limit));
