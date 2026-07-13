@@ -189,9 +189,10 @@ function removeInvalidIconFile(filePath: string): void {
 }
 
 function findExistingIcon(mint: string): { webPath: string; filePath: string } | null {
+  // Prefer /cached/… (dedicated long-cache mount) over /data/… under public/.
   for (const [dir, prefix] of [
-    [PUBLIC_ICON_DIR, PUBLIC_ICON_WEB_PREFIX],
     [RUNTIME_ICON_DIR, RUNTIME_ICON_WEB_PREFIX],
+    [PUBLIC_ICON_DIR, PUBLIC_ICON_WEB_PREFIX],
   ] as const) {
     if (!fs.existsSync(dir)) continue;
     const files = fs.readdirSync(dir);

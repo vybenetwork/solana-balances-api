@@ -39,12 +39,19 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
+function setStaticCacheHeaders(res: Response, filePath: string): void {
+  // Logos / placeholders must be browser-cacheable; HTML/JS stay fresh via no-store.
+  if (/\.(png|jpe?g|gif|webp|svg|ico)$/i.test(filePath)) {
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+}
+
 app.use(
   express.static(PUBLIC_DIR, {
-    setHeaders(res) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-    },
+    setHeaders: setStaticCacheHeaders,
   }),
 );
 
@@ -283,7 +290,16 @@ app.get('/api/wallets/:ownerAddress/pnl', async (req: Request, res: Response) =>
   }
 });
 
-app.use('/cached/token-icons', express.static(getRuntimeIconDir(), { maxAge: '7d' }));
+app.use(
+  '/cached/token-icons',
+  express.static(getRuntimeIconDir(), {
+    maxAge: '7d',
+    immutable: true,
+    setHeaders(res) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    },
+  }),
+);
 
 async function main(): Promise<void> {
   await warmupHttpProxyPool();
