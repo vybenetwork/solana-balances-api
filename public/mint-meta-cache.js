@@ -187,11 +187,25 @@
     });
   }
 
+  /** Drop a stale local logo path (e.g. after server cache wipe → 404). */
+  function forgetLogo(mint) {
+    const m = clean(mint);
+    if (!m) return;
+    const store = loadStore();
+    const hit = store[m];
+    if (!hit || typeof hit !== 'object' || !hit.logoUrl) return;
+    delete hit.logoUrl;
+    if (!hit.symbol && !hit.name) delete store[m];
+    else store[m] = hit;
+    persistStore();
+  }
+
   global.VybeMintMetaCache = {
     get,
     put,
     hydrateToken,
     rememberToken,
+    forgetLogo,
     isLocalLogoUrl,
     normalizeLogoUrl,
   };

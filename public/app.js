@@ -938,10 +938,20 @@ function pumpVybeLogoLoadQueue() {
 
 function failTokenLogo(mint) {
   clearLogoLoadTimeout(mint);
+  const alreadyFailed = logoFailedMints.has(mint);
   logoFailedMints.add(mint);
   logoLoadingMints.delete(mint);
   logoPendingRepairMints.delete(mint);
-  updateTableAfterLogoChange();
+  logoSrcAssignedMints.delete(mint);
+
+  // Stale /cached paths after a server cache wipe must not keep retrying.
+  const row = lastTokens.find((t) => t.mintAddress === mint);
+  if (row && isLocalCachedLogoUrl(row.logoUrl)) {
+    row.logoUrl = null;
+  }
+  window.VybeMintMetaCache?.forgetLogo?.(mint);
+
+  if (!alreadyFailed) updateTableAfterLogoChange();
 }
 
 function armLogoLoadTimeout(mint) {
@@ -999,12 +1009,9 @@ function tokenLogoRepairPending(mint) {
 function tokenIconHtml(t) {
   const mint = t.mintAddress;
   const icon = iconUrl(t);
-  // A local stream URL wins over a prior failed /logo repair attempt.
+  // After a 404/timeout, keep the placeholder until a stream update brings a fresh local URL.
   if (logoFailedMints.has(mint)) {
-    if (!icon) {
-      return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
-    }
-    logoFailedMints.delete(mint);
+    return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
   }
   const mintAttr = escapeHtmlAttr(mint);
 
