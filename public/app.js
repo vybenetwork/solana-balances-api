@@ -285,26 +285,47 @@ function formatUsd(n) {
   return `$${formatted}`;
 }
 
-/** USD display: full below 100k, compact K/M/B/T above. */
-function formatUsdCompact(n) {
+/**
+ * USD compact: k / M / B / T above `compactAbove` (default 999.99).
+ * No decimals only when the scaled unit is > 99.99 (e.g. $100k, $150M);
+ * otherwise keep up to 2 decimals ($58.58k, $1.25M).
+ */
+function formatUsdCompact(n, { compactAbove = 999.99 } = {}) {
   const num = toNum(n);
   if (!Number.isFinite(num)) return '—';
   if (num === 0) return '$0';
   const abs = Math.abs(num);
-  if (abs < 100000) return formatUsd(num);
-  if (abs >= 1e12) return `$${formatRoundedValue(num / 1e12)}T`;
-  if (abs >= 1e9) return `$${formatRoundedValue(num / 1e9)}B`;
-  if (abs >= 1e6) return `$${formatRoundedValue(num / 1e6)}M`;
-  return `$${formatRoundedValue(num / 1e3)}K`;
+  const sign = num < 0 ? '−' : '';
+  if (abs <= compactAbove) return formatUsd(num);
+
+  let scaled;
+  let suffix;
+  if (abs >= 1e12) {
+    scaled = abs / 1e12;
+    suffix = 'T';
+  } else if (abs >= 1e9) {
+    scaled = abs / 1e9;
+    suffix = 'B';
+  } else if (abs >= 1e6) {
+    scaled = abs / 1e6;
+    suffix = 'M';
+  } else {
+    scaled = abs / 1e3;
+    suffix = 'k';
+  }
+
+  if (scaled > 99.99) {
+    return `${sign}$${Math.round(scaled).toLocaleString(undefined, { maximumFractionDigits: 0 })}${suffix}`;
+  }
+  const body = scaled.toFixed(2).replace(/(\.\d*?[1-9])0+$|\.0+$/, '$1');
+  return `${sign}$${body}${suffix}`;
 }
 
-/** Holdings table Value (USD). */
+/** Holdings table Value (USD) — compact k/M/B after $9999. */
 function formatHoldingUsdValue(n) {
   const num = toNum(n);
   if (!Number.isFinite(num) || num <= 0) return '—';
-  const abs = Math.abs(num);
-  if (abs >= 100000) return formatUsdCompact(num);
-  return `$${formatRoundedValue(num)}`;
+  return formatUsdCompact(num, { compactAbove: 9999 });
 }
 
 function formatAmount(n, symbol) {
@@ -372,32 +393,72 @@ function formatCompactNum(n) {
   return formatRoundedValue(num);
 }
 
-function isFallbackQuotePriceSource(src) {
-  const s = String(src || '').trim();
-  return /^pumpfun/i.test(s) || /^jupiter/i.test(s);
+/** Significant digits after the first non-zero decimal for micro prices (matches DeFi table). */
+const HOLDINGS_MICRO_SIGNIFICANT_DIGITS = 3;
+
+/**
+ * Format abs < 1 from the first non-zero decimal digit.
+ * e.g. 0.001318 → "0.00132", 0.0031 → "0.0031"
+ */
+function formatFromFirstNonZero(abs, significantDigits = HOLDINGS_MICRO_SIGNIFICANT_DIGITS) {
+  if (!Number.isFinite(abs) || abs <= 0) return null;
+  const frac = abs.toFixed(20).split('.')[1] || '';
+  let firstNonZeroIdx = 0;
+  while (firstNonZeroIdx < frac.length && frac[firstNonZeroIdx] === '0') firstNonZeroIdx += 1;
+  if (firstNonZeroIdx >= frac.length) return '0';
+  const decimals = Math.min(firstNonZeroIdx + significantDigits, 20);
+  return abs.toFixed(decimals).replace(/(\.\d*?[1-9])0+$|\.0+$/, '$1');
 }
 
-/** Holdings table spot price — micro precision below $0.01. */
-function formatTablePriceUsdFraction(num, options = {}) {
-  if (!(num > 0)) return '0';
-  if (num > 0.01) {
-    return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
-  const maxFracDigits = options.truncateMicro ? 6 : 12;
-  const decimalStr = num.toFixed(maxFracDigits).replace(/\.?0+$/, '');
-  const dotIdx = decimalStr.indexOf('.');
-  if (dotIdx < 0) return decimalStr;
-  const intPart = decimalStr.slice(0, dotIdx) || '0';
-  const fracPart = decimalStr.slice(dotIdx + 1).replace(/0+$/, '');
-  if (!fracPart) return intPart;
-  return `${intPart}.${fracPart}`;
+/** Compact micro notation: 0.000006297 → { zeroRun: 5, mantissa: "630" } when 3+ leading zeros. */
+function parseLeadingZeroCompact(abs) {
+  if (!Number.isFinite(abs) || abs <= 0 || abs >= 0.001) return null;
+  const s = abs.toFixed(24).replace(/\.?0+$/, '');
+  const m = s.match(/^0\.(\d+)$/);
+  if (!m) return null;
+  const frac = m[1] ?? '';
+  let zeroRun = 0;
+  while (zeroRun < frac.length && frac[zeroRun] === '0') zeroRun += 1;
+  if (zeroRun < 3 || zeroRun >= frac.length) return null;
+  const mantissa = frac.slice(zeroRun, zeroRun + HOLDINGS_MICRO_SIGNIFICANT_DIGITS);
+  if (!mantissa) return null;
+  return { zeroRun, mantissa };
 }
 
-function formatTablePriceUsd(n, priceSource) {
+/** HTML: 0.0<sup>5</sup>630 — same notation as DeFi price column. */
+function formatLeadingZeroCompactHtml(abs) {
+  const parsed = parseLeadingZeroCompact(abs);
+  if (!parsed) return null;
+  const { zeroRun, mantissa } = parsed;
+  return `0.0<sup class="holders-price-zero-run">${zeroRun}</sup>${escapeHtmlText(mantissa)}`;
+}
+
+/** Holdings Price (USD) cell HTML — DeFi-style micro notation for many leading zeros. */
+function formatHoldingsPriceUsdHtml(n) {
   const num = toNum(n);
-  if (!Number.isFinite(num) || num <= 0) return '—';
-  const truncateMicro = isFallbackQuotePriceSource(priceSource);
-  return `$${formatTablePriceUsdFraction(num, { truncateMicro })}`;
+  if (!Number.isFinite(num) || num <= 0) return null;
+  if (num > 99.99) {
+    return `$${escapeHtmlText(Math.round(num).toLocaleString(undefined, { maximumFractionDigits: 0 }))}`;
+  }
+  if (num > 9.999) {
+    return `$${escapeHtmlText(
+      num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    )}`;
+  }
+  if (num >= 0.01) {
+    const rounded = Math.round(num * 100) / 100;
+    return `$${escapeHtmlText(
+      rounded.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: false,
+      }),
+    )}`;
+  }
+  const compactHtml = formatLeadingZeroCompactHtml(num);
+  if (compactHtml) return `$${compactHtml}`;
+  const fromFirst = formatFromFirstNonZero(num);
+  return fromFirst ? `$${escapeHtmlText(fromFirst)}` : null;
 }
 
 function formatPctChangeWithArrow(pct) {
@@ -490,9 +551,9 @@ function formatChangeColumnHtml(t) {
 }
 
 function formatPriceColumnHtml(t) {
-  const spot = formatTablePriceUsd(t.priceUsd, t.priceSource);
-  if (spot === '—') return '—';
-  return `<span class="holders-table-price">${escapeHtmlText(spot)}</span>`;
+  const html = formatHoldingsPriceUsdHtml(t.priceUsd);
+  if (!html) return '—';
+  return `<span class="holders-table-price">${html}</span>`;
 }
 
 const USD_MAGNITUDE_BAR_COLORS = {
@@ -830,10 +891,14 @@ function tokenLogoRepairPending(mint) {
 
 function tokenIconHtml(t) {
   const mint = t.mintAddress;
-  if (logoFailedMints.has(mint)) {
-    return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
-  }
   const icon = iconUrl(t);
+  // A local stream URL wins over a prior failed /logo repair attempt.
+  if (logoFailedMints.has(mint)) {
+    if (!icon) {
+      return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
+    }
+    logoFailedMints.delete(mint);
+  }
   const mintAttr = escapeHtmlAttr(mint);
 
   if (!icon) {
@@ -883,6 +948,19 @@ async function fetchRepairedLogo(mint, force) {
 async function repairTokenLogo(mint, options = {}) {
   if (logoRepairInFlight.has(mint)) return;
   if (tokenSkipsLogoRepair(mint)) return;
+  const existingIdx = lastTokens.findIndex((row) => row.mintAddress === mint);
+  const existingLocal =
+    existingIdx >= 0 && isLocalCachedLogoUrl(lastTokens[existingIdx].logoUrl)
+      ? lastTokens[existingIdx].logoUrl.trim()
+      : '';
+  // Stream/enrich already gave a local path — show it; don't run /logo repair.
+  if (existingLocal && options.force !== true) {
+    logoFailedMints.delete(mint);
+    logoPendingRepairMints.delete(mint);
+    logoSrcAssignedMints.add(mint);
+    updateTableAfterLogoChange();
+    return;
+  }
   logoRepairAttemptedMints.add(mint);
   logoRepairInFlight.add(mint);
   logoLoadingMints.add(mint);
@@ -890,20 +968,28 @@ async function repairTokenLogo(mint, options = {}) {
   try {
     const logo = await fetchRepairedLogo(mint, options.force === true);
     if (!logo) {
-      logoFailedMints.add(mint);
+      // Keep an existing local logo from the stream; only fail when we have nothing.
+      if (existingLocal) {
+        logoFailedMints.delete(mint);
+        logoSrcAssignedMints.add(mint);
+      } else {
+        logoFailedMints.add(mint);
+      }
       return;
     }
     const idx = lastTokens.findIndex((row) => row.mintAddress === mint);
     if (idx < 0) return;
-    if (lastTokens[idx].logoUrl?.trim() === logo) {
-      logoFailedMints.add(mint);
-      return;
-    }
     lastTokens[idx] = { ...lastTokens[idx], logoUrl: logo };
     logoFailedMints.delete(mint);
     logoImageLoadedMints.delete(mint);
+    logoSrcAssignedMints.add(mint);
   } catch {
-    logoFailedMints.add(mint);
+    if (existingLocal) {
+      logoFailedMints.delete(mint);
+      logoSrcAssignedMints.add(mint);
+    } else {
+      logoFailedMints.add(mint);
+    }
   } finally {
     logoLoadingMints.delete(mint);
     logoPendingRepairMints.delete(mint);
@@ -1732,8 +1818,18 @@ async function fetchBalances() {
     if (idx >= 0) lastTokens[idx] = token;
     else lastTokens.push(token);
     lastTokens = [...lastTokens].sort(compareHoldersTableRows);
+    if (isLocalCachedLogoUrl(token.logoUrl)) {
+      logoFailedMints.delete(token.mintAddress);
+      logoSrcAssignedMints.add(token.mintAddress);
+      logoPendingRepairMints.delete(token.mintAddress);
+    }
     applyTokens(lastTokens, { repairLogos: false });
-    if (token.mintAddress && !logoImageLoadedMints.has(token.mintAddress)) {
+    // Only repair when the stream left us without a local icon.
+    if (
+      token.mintAddress &&
+      !logoImageLoadedMints.has(token.mintAddress) &&
+      !isLocalCachedLogoUrl(token.logoUrl)
+    ) {
       logoPendingRepairMints.add(token.mintAddress);
       repairTokenLogo(token.mintAddress);
     }

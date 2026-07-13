@@ -3650,6 +3650,28 @@ td .mono {
   vertical-align: middle;
 }
 
+/* Keep price / mcap / vol inside their fixed columns (RPC micro-prices used to bleed). */
+#holdersTable .holders-price-col,
+#holdersTable .holders-mcap-supply-col,
+#holdersTable .holders-vol-col {
+  overflow: hidden;
+}
+
+#holdersTable .holders-table-price {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+#holdersTable .trades-cell-with-volume {
+  flex-wrap: nowrap;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .trade-volume-bars {
   display: inline-flex;
   align-items: flex-end;
@@ -4757,6 +4779,16 @@ td .mono {
   color: #86efac;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+#holdersTable .holders-table-price .holders-price-zero-run {
+  font-size: 0.62em;
+  font-weight: 500;
+  line-height: 0;
+  vertical-align: super;
+  margin-left: 0.03em;
+  color: inherit;
+  opacity: 0.85;
 }
 
 .holders-price-changes .swap-pair-chg {

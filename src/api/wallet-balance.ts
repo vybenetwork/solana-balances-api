@@ -1126,7 +1126,7 @@ export async function streamWalletTokenBalances(
     working = await materializeItemLogosLocal(working, {
       limit: logoLimit,
       concurrency: 8,
-      allowRepair: false,
+      allowRepair: true,
       onResolved: async (item) => {
         if (isCancelled?.()) return;
         emit({ event: 'update', token: maskSuspiciousWalletBalanceItem(item) });
