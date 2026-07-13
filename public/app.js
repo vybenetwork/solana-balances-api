@@ -35,7 +35,6 @@ const walletInput = document.getElementById('wallet');
 const limitSelect = document.getElementById('limit');
 const topLogoRepairEnabledInput = document.getElementById('topLogoRepairEnabled');
 const topLogoRepairNInput = document.getElementById('topLogoRepairN');
-const logoImgTimeoutSecInput = document.getElementById('logoImgTimeoutSec');
 const fetchAllBtn = document.getElementById('fetchAll');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const walletSummaryLabel = document.getElementById('walletSummaryLabel');
@@ -81,8 +80,9 @@ let lastTokens = [];
 const TOKEN_LOGO_PLACEHOLDER = '/token-placeholder.png';
 const LOGO_SETTINGS_DEFAULTS = {
   topLogoRepairN: { min: 1, max: 20, fallback: 10 },
-  logoImgTimeoutSec: { min: 3, max: 30, fallback: 10 },
 };
+/** Fixed client img load timeout (local /cached icons only; no UI control). */
+const LOGO_IMG_TIMEOUT_MS = 10_000;
 /** Match server: force-off Stream Logo Enrich for huge / mostly-dead wallets. */
 const ENRICH_FORCE_DISABLE_TOKEN_COUNT = 100;
 const ENRICH_FORCE_DISABLE_DEAD_COUNT = 50;
@@ -208,11 +208,7 @@ function getTopLogoRepairN() {
 }
 
 function getLogoImgTimeoutMs() {
-  return clampLogoSetting(logoImgTimeoutSecInput?.value, LOGO_SETTINGS_DEFAULTS.logoImgTimeoutSec) * 1000;
-}
-
-function getLogoRepairTimeoutMs() {
-  return getLogoImgTimeoutMs();
+  return LOGO_IMG_TIMEOUT_MS;
 }
 
 function syncTopLogoRepairFieldState() {
@@ -265,13 +261,9 @@ function clampLogoSettingInput(input, bounds) {
 function initLogoRepairSettings() {
   syncTopLogoRepairFieldState();
   topLogoRepairEnabledInput?.addEventListener('change', syncTopLogoRepairFieldState);
-  const boundInputs = [
-    [topLogoRepairNInput, LOGO_SETTINGS_DEFAULTS.topLogoRepairN],
-    [logoImgTimeoutSecInput, LOGO_SETTINGS_DEFAULTS.logoImgTimeoutSec],
-  ];
-  for (const [input, bounds] of boundInputs) {
-    input?.addEventListener('change', () => clampLogoSettingInput(input, bounds));
-  }
+  topLogoRepairNInput?.addEventListener('change', () =>
+    clampLogoSettingInput(topLogoRepairNInput, LOGO_SETTINGS_DEFAULTS.topLogoRepairN),
+  );
 }
 
 function escapeHtmlText(s) {
@@ -1799,7 +1791,7 @@ function renderTable(tokens, totalUsd) {
       const v = effectiveValueUsd(t);
       const pct = totalUsd > 0 && v > 0 ? (v / totalUsd) * 100 : 0;
       const iconHtml = tokenIconHtml(t);
-      const src = t.priceSource || (v > 0 ? 'Vybe list' : '—');
+      const src = t.priceSource || (v > 0 ? 'Vybe' : '—');
       const pieCat = classifyTokenPieChange(t);
       return `<tr class="holders-row holders-row--${pieCat}">
         <td class="holders-rank-col"><div class="holders-rank-cell">${holdersRankBadgeHtml(pieCat)}<span class="holders-rank-num holders-rank-num--${pieCat}">${i + 1}</span></div></td>

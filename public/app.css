@@ -1274,11 +1274,6 @@ body {
   cursor: not-allowed;
 }
 
-#logoImgTimeoutSec {
-  min-width: 124px;
-  max-width: 124px;
-}
-
 .field-control-input-suffix {
   position: relative;
 }
