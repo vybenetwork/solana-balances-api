@@ -1,22 +1,22 @@
-# Solana Wallet Balances API
+# Solana Balances API
 
 <p align="center">
 
 [![Demo](https://img.shields.io/badge/Demo-Solana%20Wallet%20Balances%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-wallet-balances-api.vybenetwork.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-wallet-balances-api)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-balances-api)
 [![Wallet balances guide](https://img.shields.io/badge/Guides-Wallet%20balances-3b82f6?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/token-balances)
 [![Wallet token balance API](https://img.shields.io/badge/Endpoint-Wallet%20token%20balance-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)
 [![Token details API](https://img.shields.io/badge/Endpoint-Token%20details-8b5cf6?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_token_details_v4)
 [![X](https://img.shields.io/badge/X-Vybe__Network-000000?style=for-the-badge&logo=x)](https://x.com/Vybe_Network)
 </p>
 
-**Solana Wallet Balances API:** Solana wallet balances API: fetch SPL & Token-2022 holdings with on-chain RPC amounts, Vybe metadata, and live USD portfolio values for any Solana wallet. Use this project as a reference implementation or starter kit for portfolio UIs, wallet dashboards, and balance enrichment pipelines.
+**Solana Balances API:** Solana Balances API: fetch SPL & Token-2022 holdings with on-chain RPC amounts, Vybe metadata, and live USD portfolio values for any Solana wallet. Use this project as a reference implementation or starter kit for portfolio UIs, wallet dashboards, and balance enrichment pipelines.
 
 It includes a production-ready Node.js backend and a modern frontend that integrate Vybe’s wallet token-balance, token details, wallet PnL, and top-traders endpoints—explore holdings tables, USD allocation charts, streaming enrichment, and related wallet PnL context.
 
 Try the live demo: https://solana-wallet-balances-api.vybenetwork.com
 
-![Solana Wallet Balances API app](screenshots/solana-wallet-balances-api-app-demo.jpg)
+![Solana Balances API app](screenshots/solana-wallet-balances-api-app-demo.jpg)
 
 ---
 
@@ -25,7 +25,7 @@ Try the live demo: https://solana-wallet-balances-api.vybenetwork.com
 - **[Realtime wallet balances guide →](https://docs.vybenetwork.com/docs/token-balances)**
 - **[Wallet token balance endpoint →](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)**
 - **[Token details endpoint →](https://docs.vybenetwork.com/reference/get_token_details_v4)**
-- **[GitHub repo →](https://github.com/vybenetwork/solana-wallet-balances-api)**
+- **[GitHub repo →](https://github.com/vybenetwork/solana-balances-api)**
 - **[Telegram →](https://t.me/VybeNetwork_Official)**
 - **[X →](https://x.com/Vybe_Network)**
 
@@ -41,7 +41,7 @@ Try the live demo: https://solana-wallet-balances-api.vybenetwork.com
 Get from clone to running app in a few commands:
 
 ```bash
-git clone https://github.com/vybenetwork/solana-wallet-balances-api.git
+git clone https://github.com/vybenetwork/solana-balances-api.git
 cd solana-wallet-balances-api
 npm install
 cp .env.example .env
@@ -155,7 +155,7 @@ All Vybe requests use a shared client (`src/api/client.ts`) with timeouts, retri
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/vybenetwork/solana-wallet-balances-api.git
+git clone https://github.com/vybenetwork/solana-balances-api.git
 cd solana-wallet-balances-api
 ```
 
@@ -263,5 +263,5 @@ async function fetchWalletBalances(ownerAddress: string) {
 
 - **Telegram:** [VybeNetwork Official](https://t.me/VybeNetwork_Official)
 - **X:** [@Vybe_Network](https://x.com/Vybe_Network)
-- **GitHub:** [solana-wallet-balances-api](https://github.com/vybenetwork/solana-wallet-balances-api)
+- **GitHub:** [solana-wallet-balances-api](https://github.com/vybenetwork/solana-balances-api)
 - **Support ticket:** [Submit a ticket via vybenetwork.com](https://vybenetwork.com)
