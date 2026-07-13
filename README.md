@@ -205,7 +205,6 @@ solana-wallet-balances-api/
     └── api/
         ├── client.ts
         ├── wallet-balance.ts
-        ├── wallet-rpc-balance.ts
         ├── wallet-pnl.ts
         ├── tokens.ts
         ├── resolve-token-meta.ts

@@ -1,5 +1,5 @@
 /**
- * Wallet token balances: Vybe list + RPC amount override for matched mints; enriched via Jupiter → pump.fun → Vybe.
+ * Wallet token balances from Vybe; enriched via Jupiter → pump.fun → Vybe for missing meta/logos.
  */
 
 import type { AxiosInstance } from 'axios';
@@ -9,8 +9,6 @@ import { getToken } from './tokens.js';
 import { toVybeSwapMint } from './sol-mints.js';
 import { fetchJupiterAsset, fetchJupiterQuotePrice } from './jupiter-token-fallback.js';
 import { resolveTokenMeta } from './resolve-token-meta.js';
-import { fetchRpcWalletBalances, RPC_NATIVE_SOL_MINT } from './wallet-rpc-balance.js';
-import type { RpcMintBalance } from './wallet-rpc-balance.js';
 import { WALLET_TOKEN_BALANCE_LIMIT } from '../wallet-balance-limit.js';
 import { isMintLikeLabel } from './token-label.js';
 import { getCachedTokenMetaFromDisk, cacheTokenMetaFromVybe } from '../token-icon-cache.js';
@@ -687,147 +685,60 @@ async function enrichWalletItemMeta(
   );
 }
 
-async function fetchRpcWalletBalancesSafe(
-  ownerAddress: string,
-): Promise<{
-  rpcByMint: Map<string, RpcMintBalance>;
-  rpcOk: boolean;
-}> {
-  try {
-    const rpcByMint = await fetchRpcWalletBalances(ownerAddress);
-    return { rpcByMint, rpcOk: true };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[wallet-balance] RPC balance fetch failed, using Vybe amounts only: ${msg}`);
-    return { rpcByMint: new Map(), rpcOk: false };
-  }
-}
-
-function resolveAmountFromRpc(
-  mintAddress: string,
-  vybeDecimals: number,
-  vybeAmount: string,
-  rpcByMint: Map<string, RpcMintBalance>,
-  rpcOk: boolean,
-): { amountUi: number; amountExact: string; decimals: number } | null {
-  const rpc =
-    rpcByMint.get(mintAddress) ??
-    (mintAddress === NATIVE_SOL_MINT ? rpcByMint.get(RPC_NATIVE_SOL_MINT) : undefined);
-
-  if (rpcOk) {
-    const decimals =
-      rpc != null
-        ? vybeDecimals >= 0
-          ? vybeDecimals
-          : rpc.decimals
-        : vybeDecimals;
-    if (!Number.isFinite(decimals) || decimals < 0) return null;
-    const amountRaw = rpc?.amountRaw ?? 0n;
-    const amountExact = amountRaw.toString();
-    const amountUi = rawToUiAmount(amountExact, decimals);
-    if (!(amountUi > 0)) return null;
-    return { amountExact, amountUi, decimals };
-  }
-
-  if (rpc && rpc.amountRaw > 0n) {
-    const decimals = vybeDecimals >= 0 ? vybeDecimals : rpc.decimals;
-    const amountExact = rpc.amountRaw.toString();
-    return {
-      amountExact,
-      amountUi: rawToUiAmount(amountExact, decimals),
-      decimals,
-    };
-  }
-  const vybeDec = vybeDecimals;
-  if (!Number.isFinite(vybeDec) || vybeDec < 0) return null;
-  const amountUi = balanceAmountToUi(vybeAmount, vybeDec);
-  if (!(amountUi > 0)) return null;
-  return {
-    amountUi,
-    amountExact: balanceAmountToRaw(vybeAmount, vybeDec).toString(),
-    decimals: vybeDec,
-  };
-}
-
 export interface MergedWalletBalances {
   items: WalletBalanceListItem[];
 }
 
-export async function mergeWalletBalancesFromRpcAndVybe(
+export async function fetchWalletBalancesFromVybe(
   http: AxiosInstance,
   ownerAddress: string,
   limit = WALLET_TOKEN_BALANCE_LIMIT,
 ): Promise<MergedWalletBalances> {
   const label = ownerAddress.trim().slice(0, 8);
   const mergeStart = Date.now();
-  let vybeMs = 0;
-  let rpcMs = 0;
-
   const vybeStarted = Date.now();
-  const vybePromise = getWalletTokenBalance(http, {
-    ownerAddress,
-    includeNoPriceBalance: true,
-    sortByDesc: VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC,
-    limit: Math.min(limit, VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT),
-  })
-    .then((result) => {
-      vybeMs = Date.now() - vybeStarted;
-      return result;
-    })
-    .catch((err: unknown) => {
-      vybeMs = Date.now() - vybeStarted;
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[wallet-balance] Vybe token list failed, using RPC-only: ${msg}`);
-      return null;
+
+  let balanceData: VybeTokenBalance[] = [];
+  try {
+    const balance = await getWalletTokenBalance(http, {
+      ownerAddress,
+      includeNoPriceBalance: true,
+      sortByDesc: VYBE_WALLET_TOKEN_BALANCE_SORT_BY_DESC,
+      limit: Math.min(limit, VYBE_WALLET_TOKEN_BALANCE_MAX_LIMIT),
     });
-
-  const rpcStarted = Date.now();
-  const rpcPromise = fetchRpcWalletBalancesSafe(ownerAddress).then((result) => {
-    rpcMs = Date.now() - rpcStarted;
-    return result;
-  });
-
-  const [balanceResult, { rpcByMint, rpcOk }] = await Promise.all([vybePromise, rpcPromise]);
-
-  const balance = balanceResult ?? { data: [] };
-
-  if (rpcOk) {
-    console.info(
-      `[wallet-balance] ${label} fetch vybe=${vybeMs}ms rpc=${rpcMs}ms vybeRows=${balance.data.length} rpcMints=${rpcByMint.size}`,
-    );
-  } else {
-    console.info(
-      `[wallet-balance] ${label} fetch vybe=${vybeMs}ms rpc=${rpcMs}ms (rpc failed) vybeRows=${balance.data.length}`,
-    );
+    balanceData = Array.isArray(balance.data) ? balance.data : [];
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[wallet-balance] Vybe token list failed: ${msg}`);
+    balanceData = [];
   }
+  console.info(
+    `[wallet-balance] ${label} fetch vybe=${Date.now() - vybeStarted}ms vybeRows=${balanceData.length}`,
+  );
 
-  const verifiedZero7dHighValueCount = countVybeVerifiedZero7dHighValueMarks(balance.data);
+  const verifiedZero7dHighValueCount = countVybeVerifiedZero7dHighValueMarks(balanceData);
   if (verifiedZero7dHighValueCount > 0) {
     console.info(
       `[wallet-balance] ${verifiedZero7dHighValueCount} verified token(s) with valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN} and zero 7d trend — kept (unverified-only filter)`,
     );
   }
 
-  const skipLogoEnrichCount = balance.data.filter((row) => isVybeSuspiciousHighValueMark(row)).length;
+  const skipLogoEnrichCount = balanceData.filter((row) => isVybeSuspiciousHighValueMark(row)).length;
   if (skipLogoEnrichCount > 0) {
     console.info(
       `[wallet-balance] ${skipLogoEnrichCount} unverified token(s) with missing/zero price, ~1 token amount, or valueUsd > $${VYBE_SUSPICIOUS_VALUE_USD_MIN} + zero 7d — skip logo enrich`,
     );
   }
 
-  const items = balance.data
+  const items = balanceData
     .map((row) => {
-      const vybeDecimals = Number(row.decimals);
+      const decimals = Number(row.decimals);
       const mintAddress = row.mintAddress.trim();
-      const amounts = resolveAmountFromRpc(
-        mintAddress,
-        vybeDecimals,
-        row.amount,
-        rpcByMint,
-        rpcOk,
-      );
-      if (!amounts) return null;
-      const skipLogoEnrich = isVybeSuspiciousHighValueMark(row, amounts.amountUi);
+      if (!Number.isFinite(decimals) || decimals < 0) return null;
+      const amountUi = balanceAmountToUi(row.amount, decimals);
+      if (!(amountUi > 0)) return null;
+      const amountExact = balanceAmountToRaw(row.amount, decimals).toString();
+      const skipLogoEnrich = isVybeSuspiciousHighValueMark(row, amountUi);
       const rawSymbol = row.symbol?.trim() ?? '';
       const rawName = row.name?.trim() ?? '';
       const rawSymbolBad = isBadHoldingsLabel(rawSymbol, mintAddress);
@@ -835,16 +746,7 @@ export async function mergeWalletBalancesFromRpcAndVybe(
       const symbol = !rawSymbolBad ? rawSymbol : mintAddress.slice(0, 6);
       const name = !rawNameBad ? rawName : symbol;
       let valueUsd = Number(row.valueUsd);
-      if (rpcOk) {
-        const priceUsd = Number(row.priceUsd);
-        if (Number.isFinite(priceUsd) && priceUsd > 0) {
-          valueUsd = holdingValueUsd(priceUsd, amounts.amountUi);
-        } else if (!Number.isFinite(valueUsd)) {
-          valueUsd = 0;
-        }
-      } else if (!Number.isFinite(valueUsd)) {
-        valueUsd = 0;
-      }
+      if (!Number.isFinite(valueUsd)) valueUsd = 0;
       const enrichmentPending =
         !skipLogoEnrich &&
         (valueUsd <= 0 ||
@@ -856,9 +758,9 @@ export async function mergeWalletBalancesFromRpcAndVybe(
         symbol,
         name,
         logoUrl: preferLocalHoldingsLogo(mintAddress, row.logoUrl?.trim() || null),
-        decimals: amounts.decimals,
-        amountUi: amounts.amountUi,
-        amountExact: amounts.amountExact,
+        decimals,
+        amountUi,
+        amountExact,
         valueUsd,
         verified: row.verified === true,
         enrichmentPending,
@@ -874,10 +776,11 @@ export async function mergeWalletBalancesFromRpcAndVybe(
   if (hydrated > 0) {
     console.info(`[wallet-balance] ${label} disk-hydrate applied to ${hydrated} holding(s)`);
   }
-  logMergeResult(label, mergeStart, balance.data.length, skipLogoEnrichCount, hydratedItems.length);
+  logMergeResult(label, mergeStart, balanceData.length, skipLogoEnrichCount, hydratedItems.length);
 
   return { items: hydratedItems };
 }
+
 
 function logMergeResult(
   label: string,
@@ -943,7 +846,7 @@ export async function streamWalletTokenBalances(
   const enrich = options?.enrich !== false;
   const enrichLimit = resolveMetaEnrichLimit(options?.enrichLimit, enrich);
   const label = ownerAddress.trim().slice(0, 8);
-  const { items } = await mergeWalletBalancesFromRpcAndVybe(http, ownerAddress, limit);
+  const { items } = await fetchWalletBalancesFromVybe(http, ownerAddress, limit);
   if (isCancelled?.()) return;
   emit({ event: 'initial', tokens: maskSuspiciousWalletBalanceList(items) });
   // Yield so the initial NDJSON frame can flush before slow enrich / logo download.
@@ -996,7 +899,7 @@ export async function listWalletTokenBalances(
   const enrich = options?.enrich === true;
   const enrichLimit = resolveMetaEnrichLimit(options?.enrichLimit, enrich);
   const label = ownerAddress.trim().slice(0, 8);
-  const { items } = await mergeWalletBalancesFromRpcAndVybe(http, ownerAddress, limit);
+  const { items } = await fetchWalletBalancesFromVybe(http, ownerAddress, limit);
   let result = items.slice(0, limit);
   if (!enrich) return maskSuspiciousWalletBalanceList(result);
 
@@ -1013,33 +916,17 @@ export async function getWalletSolBalanceUi(
   http: AxiosInstance,
   ownerAddress: string,
 ): Promise<number> {
-  const [{ rpcByMint, rpcOk }, balance] = await Promise.all([
-    fetchRpcWalletBalancesSafe(ownerAddress),
-    getWalletTokenBalance(http, {
-      ownerAddress,
-      includeNoPriceBalance: true,
-    }),
-  ]);
+  const balance = await getWalletTokenBalance(http, {
+    ownerAddress,
+    includeNoPriceBalance: true,
+  });
   let totalRaw = 0n;
-  if (rpcOk) {
-    const native = rpcByMint.get(RPC_NATIVE_SOL_MINT);
-    const wsol = rpcByMint.get(WSOL_MINT);
-    if (native) totalRaw += native.amountRaw;
-    if (wsol) totalRaw += wsol.amountRaw;
-    return rawToUiAmount(totalRaw.toString(), 9);
-  }
-  const native = rpcByMint.get(RPC_NATIVE_SOL_MINT);
-  const wsol = rpcByMint.get(WSOL_MINT);
-  if (native) totalRaw += native.amountRaw;
-  if (wsol) totalRaw += wsol.amountRaw;
-  if (totalRaw <= 0n) {
-    for (const row of balance.data) {
-      const mint = row.mintAddress.trim();
-      if (mint !== NATIVE_SOL_MINT && mint !== WSOL_MINT) continue;
-      const decimals = Number(row.decimals);
-      if (!Number.isFinite(decimals) || decimals < 0) continue;
-      totalRaw += balanceAmountToRaw(row.amount, decimals);
-    }
+  for (const row of balance.data) {
+    const mint = row.mintAddress.trim();
+    if (mint !== NATIVE_SOL_MINT && mint !== WSOL_MINT) continue;
+    const decimals = Number(row.decimals);
+    if (!Number.isFinite(decimals) || decimals < 0) continue;
+    totalRaw += balanceAmountToRaw(row.amount, decimals);
   }
   return rawToUiAmount(totalRaw.toString(), 9);
 }

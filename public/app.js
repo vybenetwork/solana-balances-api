@@ -1859,7 +1859,7 @@ const HOLDERS_META_PLACEHOLDER = 'Load a wallet to see token balances ranked by 
 const HOLDERS_PNL_META_PLACEHOLDER = 'Load a wallet with 7d PnL enabled to see per-token realized and unrealized PnL, buys/sells, and volumes.';
 
 function formatHoldersMetaLoadedText(tokensCount) {
-  return `${tokensCount} tokens · RPC amounts + Vybe merge · Vybe token-details for category, supply, volume, and 1d/7d price change.`;
+  return `${tokensCount} tokens · Vybe wallet balances · Vybe token-details for category, supply, volume, and 1d/7d price change.`;
 }
 
 function formatHoldersPnlMetaLoadedText(metricsCount) {
