@@ -144,8 +144,8 @@ app.get('/api/token/:mint/logo', async (req: Request, res: Response) => {
 
     const force = qBool(req, 'force', false);
     const logoUrl = await repairTokenIcon(mint, { force });
-    if (!logoUrl) return res.status(404).json({ error: `No logo found for mint ${mint}` });
-    res.json({ logoUrl });
+    // 200 with null — missing logos are common; avoid browser 404 console noise.
+    res.json({ logoUrl: logoUrl ?? null });
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
     res.status(status).json({ error: toHumanReadableError(err) });
