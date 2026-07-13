@@ -758,7 +758,9 @@ export async function fetchWalletBalancesFromVybe(
           !row.logoUrl?.trim() ||
           rawSymbolBad ||
           isBadHoldingsLabel(symbol, mintAddress));
-      const item: WalletBalanceListItem = maskSuspiciousWalletBalanceItem({
+      // Keep remote logo hints here for materializeItemLogosLocal. Mask to
+      // client-safe local paths only on stream/API emit (maskSuspicious*).
+      const item: WalletBalanceListItem = {
         mintAddress,
         symbol,
         name,
@@ -771,7 +773,7 @@ export async function fetchWalletBalancesFromVybe(
         enrichmentPending,
         skipLogoEnrich: skipLogoEnrich || undefined,
         ...vybeFieldsFromWalletBalanceRow(row),
-      });
+      };
       return item;
     })
     .filter((row): row is WalletBalanceListItem => row !== null);
@@ -897,21 +899,23 @@ export async function streamWalletTokenBalances(
   await new Promise<void>((resolve) => setImmediate(resolve));
 
   let working = items;
-  // After initial: download remote logos to disk (Jupiter/pump repair only when enrich is on).
-  const logoLimit = enrichLimit > 0 ? Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX) : TOP_LOGO_REPAIR_N_MAX;
+  // After initial: download Vybe remote logos to disk for top N even when meta
+  // enrich is force-disabled (repair=Jupiter/pump only when enrich is on).
+  const logoLimit = Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX);
   if (logoLimit > 0) {
     const logoStart = Date.now();
+    const allowRepair = enrichLimit > 0;
     working = await materializeItemLogosLocal(working, {
       limit: logoLimit,
       concurrency: 8,
-      allowRepair: enrichLimit > 0,
+      allowRepair,
       onResolved: async (item) => {
         if (isCancelled?.()) return;
         emit({ event: 'update', token: maskSuspiciousWalletBalanceItem(item) });
       },
     });
     console.info(
-      `[wallet-balance] ${label} logo-materialize done in ${Date.now() - logoStart}ms (cap ${logoLimit}, repair=${enrichLimit > 0})`,
+      `[wallet-balance] ${label} logo-materialize done in ${Date.now() - logoStart}ms (cap ${logoLimit}, repair=${allowRepair})`,
     );
   }
 

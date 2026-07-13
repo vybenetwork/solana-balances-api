@@ -2435,7 +2435,8 @@ button:not(.vybe-action-btn):disabled {
 }
 
 .token-stats-row.token-stats-row--split-overview {
-  grid-template-columns: minmax(0, 26%) minmax(0, 74%);
+  /* Move 20px from the right pair into Overview. */
+  grid-template-columns: minmax(0, calc(26% + 20px)) minmax(0, calc(74% - 20px));
   align-items: start;
 }
 
@@ -2469,7 +2470,8 @@ button:not(.vybe-action-btn):disabled {
 
 .token-stats-pair-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 56%);
+  /* Categories & Labels −20px; that space goes to Portfolio Value within the pair. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(56% - 20px));
   gap: 0.65rem;
   min-width: 0;
   flex: 1 1 auto;

@@ -826,17 +826,17 @@ function aggregateWalletTaxonomy(tokens) {
     topCategory: topCat ? { name: topCat[0], count: topCat[1].count, usd: topCat[1].usd } : null,
     topSubcategory: topSub ? { name: topSub[0], count: topSub[1].count, usd: topSub[1].usd } : null,
     topCategoryLine: topCat
-      ? `${topCat[0]} · ${topCat[1].count} token(s) · ${formatUsd(topCat[1].usd)}`
+      ? `${topCat[0]} · ${topCat[1].count} ${formatTokenCountWord(topCat[1].count)} · ${formatUsd(topCat[1].usd)}`
       : '—',
     topSubcategoryLine: topSub
-      ? `${topSub[0]} · ${topSub[1].count} token(s) · ${formatUsd(topSub[1].usd)}`
+      ? `${topSub[0]} · ${topSub[1].count} ${formatTokenCountWord(topSub[1].count)} · ${formatUsd(topSub[1].usd)}`
       : '—',
   };
 }
 
 function formatTopTaxonomyStatHtml(entry) {
   if (!entry) return escapeHtmlText('—');
-  const tokenWord = entry.count === 1 ? 'token' : 'tokens';
+  const tokenWord = formatTokenCountWord(entry.count);
   const meta = `${entry.count.toLocaleString()} ${tokenWord} · ${formatUsd(entry.usd)}`;
   return `<span class="token-stat-top-taxonomy-name">${escapeHtmlText(entry.name)}</span><span class="token-stat-top-taxonomy-meta">${escapeHtmlText(meta)}</span>`;
 }
@@ -847,6 +847,10 @@ function formatOverviewTokenCountHtml(count) {
   if (!Number.isFinite(n)) return escapeHtmlText('—');
   const word = n === 1 ? 'Token' : 'Tokens';
   return `${escapeHtmlText(n.toLocaleString())} <span class="token-stat-count-suffix">${escapeHtmlText(word)}</span>`;
+}
+
+function formatTokenCountWord(count) {
+  return Number(count) === 1 ? 'token' : 'tokens';
 }
 
 function formatOverviewCountSuffixHtml(count, suffix) {
@@ -1286,12 +1290,12 @@ function buildWalletSummarySections(data) {
         rows: [
           {
             key: 'supply',
-            label: 'Unique categories',
+            label: 'Total categories',
             valueHtml: formatOverviewCountSuffixHtml(data.uniqueCategories, 'Categories'),
           },
           {
             key: 'usdVol24h',
-            label: 'Unique subcategories',
+            label: 'Total subcategories',
             valueHtml: formatOverviewCountSuffixHtml(data.uniqueSubcategories, 'Subcategories'),
           },
         ],
@@ -1397,11 +1401,8 @@ function formatHoldingValueUsdCellHtml(valueUsd) {
 function formatBandTotalUsd(n) {
   const num = toNum(n);
   if (!Number.isFinite(num) || num <= 0) return '$0';
-  return `$${formatRoundedValue(num)}`;
-}
-
-function formatTokenCountWord(count) {
-  return Number(count) === 1 ? 'token' : 'tokens';
+  // Full through $9999; then k/M/B with always 2 decimals ($10.00k, $1.36M).
+  return formatPortfolioStatUsd(num);
 }
 
 function renderUsdBarRow(d, i, count, total, maxC, sumUsd) {
@@ -1571,11 +1572,19 @@ function buildPriceChangePieInsight(bucket, totalTokens) {
 
 function setWalletStatsView(mode) {
   const showHoldings = mode === 'holdings';
+  if (walletStatsViewSwitch) walletStatsViewSwitch.checked = !showHoldings;
   if (holdingsStatsContent) holdingsStatsContent.hidden = !showHoldings;
   if (pnlStatsContent) pnlStatsContent.hidden = showHoldings;
   if (walletStatsSectionTitle) {
     walletStatsSectionTitle.textContent = showHoldings ? 'Holdings Stats' : 'PnL Stats (7 days)';
   }
+}
+
+/** Keep Stats + Table tabs on the same Holdings vs PnL side. */
+function setLinkedPageView(mode) {
+  const view = mode === 'pnl' ? 'pnl' : 'holdings';
+  setWalletStatsView(view);
+  setHoldersTableView(view);
 }
 
 function setChartsPlaceholder() {
@@ -1619,7 +1628,7 @@ function renderCharts(tokens, wallet, totalUsd) {
       slicePct: bucket.slices[i],
       shareLabel: ' of tokens',
       usdLine: formatUsd(bucket.usd[i]),
-      amountLine: `${count} token(s)`,
+      amountLine: `${count} ${formatTokenCountWord(count)}`,
     });
   }).join('');
 
@@ -1628,7 +1637,7 @@ function renderCharts(tokens, wallet, totalUsd) {
   portfolioPieInsight.textContent = buildPriceChangePieInsight(bucket, tokens.length);
 
   if (holdingsStatsMeta) {
-    holdingsStatsMeta.textContent = `Wallet holdings: ${tokens.length} token(s) · profitability pie and USD value bands.`;
+    holdingsStatsMeta.textContent = `Wallet holdings: ${tokens.length} ${formatTokenCountWord(tokens.length)} · profitability pie and USD value bands.`;
   }
 
   renderUsdBars(tokens);
@@ -2046,13 +2055,12 @@ function initWalletPnlIntegration() {
       walletPnlAssetsBody: document.getElementById('walletPnlAssetsBody'),
     });
   }
-  setHoldersTableView('holdings');
-  setWalletStatsView('holdings');
+  setLinkedPageView('holdings');
   holdersTableViewSwitch?.addEventListener('change', () => {
-    setHoldersTableView(holdersTableViewSwitch.checked ? 'pnl' : 'holdings');
+    setLinkedPageView(holdersTableViewSwitch.checked ? 'pnl' : 'holdings');
   });
   walletStatsViewSwitch?.addEventListener('change', () => {
-    setWalletStatsView(walletStatsViewSwitch.checked ? 'pnl' : 'holdings');
+    setLinkedPageView(walletStatsViewSwitch.checked ? 'pnl' : 'holdings');
   });
 }
 
