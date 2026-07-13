@@ -520,17 +520,7 @@ function formatZeroChangeChipHtml(label, inheritPct = null) {
   return `<span class="swap-pair-chg swap-pair-chg--dead">${escapeHtmlText(label)} 0%</span>`;
 }
 
-function holdersTableSortRank(t) {
-  const cat = classifyTokenPieChange(t);
-  if (cat === 'profitable') return 0;
-  if (cat === 'breaking_even') return 1;
-  if (cat === 'losing') return 2;
-  return 3;
-}
-
 function compareHoldersTableRows(a, b) {
-  const rankDiff = holdersTableSortRank(a) - holdersTableSortRank(b);
-  if (rankDiff !== 0) return rankDiff;
   return toNum(effectiveValueUsd(b)) - toNum(effectiveValueUsd(a));
 }
 
