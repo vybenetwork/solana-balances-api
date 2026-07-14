@@ -1,5 +1,5 @@
 /**
- * Solana wallet balances API server.
+ * Solana balances API server.
  */
 
 import express, { type Request, type Response } from 'express';

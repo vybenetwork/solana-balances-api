@@ -1,7 +1,7 @@
 {
   "name": "solana-wallet-balances-api",
   "version": "1.0.0",
-  "description": "Solana wallet balances API: fetch SPL & Token-2022 holdings with on-chain RPC amounts, Vybe metadata, and live USD portfolio values for any Solana wallet.",
+  "description": "Solana balances API: fetch SPL & Token-2022 holdings with on-chain RPC amounts, Vybe metadata, and live USD portfolio values for any Solana wallet.",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {

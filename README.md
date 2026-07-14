@@ -2,7 +2,7 @@
 
 <p align="center">
 
-[![Demo](https://img.shields.io/badge/Demo-Solana%20Wallet%20Balances%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-balances-api.vybenetwork.com)
+[![Demo](https://img.shields.io/badge/Demo-Solana%20Balances%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-balances-api.vybenetwork.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-balances-api)
 [![Wallet balances guide](https://img.shields.io/badge/Guides-Wallet%20balances-3b82f6?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/token-balances)
 [![Wallet token balance API](https://img.shields.io/badge/Endpoint-Wallet%20token%20balance-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)
