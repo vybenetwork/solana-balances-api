@@ -1,35 +1,28 @@
 /**
- * Solana balances API server.
+ * Solana balances API server (debug: assets API only for holdings).
  */
 
 import express, { type Request, type Response } from 'express';
-import path from 'path';
 import { fileURLToPath } from 'url';
+import path from 'path';
 import {
   loadEnv,
-  getDataApiKey,
   getSolanaRpcProviderLabel,
   PUBLIC_DIR,
-  VYBE_DATA_API_BASE,
+  ASSETS_API_BASE,
 } from './config.js';
-import { createDataHttpClient, toHumanReadableError } from './api/client.js';
+import { toHumanReadableError } from './api/client.js';
 import {
   listWalletTokenBalances,
   streamWalletTokenBalances,
-  TOP_LOGO_REPAIR_N,
-  TOP_LOGO_REPAIR_N_MAX,
   WALLET_TOKEN_BALANCE_LIMIT,
 } from './api/wallet-balance.js';
-import { resolveTokenMeta } from './api/resolve-token-meta.js';
-import { getTopTraders, getWalletPnl } from './api/wallet-pnl.js';
-import { cachedMetaToApiResponse } from './api/token-meta-api.js';
+import { fetchProxiedLogo } from './api/proxy-logo.js';
 import { getRuntimeIconDir } from './token-icon-cache.js';
 
 loadEnv();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataApiKey = getDataApiKey();
-const dataHttp = createDataHttpClient(dataApiKey);
 const port = Number(process.env.PORT ?? 3001);
 
 const app = express();
@@ -37,7 +30,6 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '64kb' }));
 
 function setStaticCacheHeaders(res: Response, filePath: string): void {
-  // Logos / placeholders must be browser-cacheable; HTML/JS stay fresh via no-store.
   if (/\.(png|jpe?g|gif|webp|svg|ico)$/i.test(filePath)) {
     res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     return;
@@ -74,12 +66,15 @@ function qBool(req: Request, key: string, defaultValue = false): boolean {
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
-    vybeDataApiBase: VYBE_DATA_API_BASE,
+    mode: 'debug-assets',
+    assetsApiBase: ASSETS_API_BASE || null,
+    assetsEndpoint: '/api/assets/:wallet',
+    enrich: false,
     solanaRpc: getSolanaRpcProviderLabel(),
   });
 });
 
-/** GET /api/wallets/:ownerAddress/token-balances */
+/** GET /api/wallets/:ownerAddress/token-balances — assets API only, no local enrich. */
 app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: Response) => {
   try {
     const rawOwner = req.params.ownerAddress;
@@ -92,17 +87,8 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
         ? Math.min(limitRaw, WALLET_TOKEN_BALANCE_LIMIT)
         : WALLET_TOKEN_BALANCE_LIMIT;
     const useStream = qBool(req, 'stream');
-    const enrich = qBool(req, 'enrich', true);
-    const enrichLimitRaw = qNum(req, 'enrichLimit');
-    const enrichLimit =
-      enrichLimitRaw != null && enrichLimitRaw >= 0
-        ? Math.min(enrichLimitRaw, TOP_LOGO_REPAIR_N_MAX)
-        : enrich
-          ? TOP_LOGO_REPAIR_N
-          : 0;
 
     if (useStream) {
-      const enrichStream = qBool(req, 'enrich', true);
       res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('X-Accel-Buffering', 'no');
@@ -112,7 +98,7 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
         closed = true;
       });
       await streamWalletTokenBalances(
-        dataHttp,
+        undefined,
         ownerAddress,
         limit,
         (event) => {
@@ -122,16 +108,12 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
           flushable.flush?.();
         },
         () => closed,
-        { enrich: enrichStream, enrichLimit },
       );
       if (!closed) res.end();
       return;
     }
 
-    const tokens = await listWalletTokenBalances(dataHttp, ownerAddress, limit, {
-      enrich,
-      enrichLimit,
-    });
+    const tokens = await listWalletTokenBalances(undefined, ownerAddress, limit);
     res.json({ tokens });
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
@@ -139,79 +121,18 @@ app.get('/api/wallets/:ownerAddress/token-balances', async (req: Request, res: R
   }
 });
 
-/** GET /api/token/:mint — resolve metadata and USD price (Jupiter → pump.fun → Vybe). */
-app.get('/api/token/:mint', async (req: Request, res: Response) => {
+/** GET /api/proxy-logo?url= — fetch remote token logos (bypasses ipfs.io 403 in browser). */
+app.get('/api/proxy-logo', async (req: Request, res: Response) => {
   try {
-    const rawMint = req.params.mint;
-    const mint = (Array.isArray(rawMint) ? rawMint[0] : rawMint ?? '').trim();
-    if (!mint) return res.status(400).json({ error: 'Mint address required' });
-
-    const skipVybe = qBool(req, 'skipVybe');
-    const resolved = await resolveTokenMeta(dataHttp, mint, { skipVybe });
-    if (!resolved) {
-      return res.status(404).json({ error: `No metadata found for mint ${mint}` });
-    }
-    res.json(cachedMetaToApiResponse(resolved.meta, resolved.source));
+    const url = q(req, 'url').trim();
+    if (!url) return res.status(400).json({ error: 'url required' });
+    const got = await fetchProxiedLogo(url);
+    if (!got) return res.status(404).json({ error: 'logo not found' });
+    res.setHeader('Content-Type', got.contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(got.body);
   } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
-    res.status(status).json({ error: toHumanReadableError(err) });
-  }
-});
-
-/** GET /api/wallets/top-traders — related wallets by realized PnL */
-app.get('/api/wallets/top-traders', async (req: Request, res: Response) => {
-  try {
-    const mintAddress = q(req, 'mintAddress').trim();
-    const ilikeFilter = q(req, 'ilikeFilter').trim();
-    if (!mintAddress && !ilikeFilter) {
-      return res.status(400).json({ error: 'mintAddress or ilikeFilter required' });
-    }
-    const resolution = q(req, 'resolution') || '7d';
-    const sortByAsc = q(req, 'sortByAsc').trim();
-    const sortByDesc = q(req, 'sortByDesc').trim() || 'realizedPnlUsd';
-    const label = q(req, 'label').trim();
-    const page = qNum(req, 'page');
-    const limit = Math.min(qNum(req, 'limit') ?? 100, 1000);
-    const data = await getTopTraders(dataHttp, {
-      ...(mintAddress ? { mintAddress } : {}),
-      ...(ilikeFilter ? { ilikeFilter } : {}),
-      ...(label ? { label } : {}),
-      ...(sortByAsc ? { sortByAsc } : { sortByDesc }),
-      ...(page != null ? { page } : {}),
-      resolution,
-      limit,
-    });
-    res.json(data);
-  } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
-    res.status(status).json({ error: toHumanReadableError(err) });
-  }
-});
-
-/** GET /api/wallets/:ownerAddress/pnl — wallet PnL summary + per-token metrics */
-app.get('/api/wallets/:ownerAddress/pnl', async (req: Request, res: Response) => {
-  try {
-    const rawOwner = req.params.ownerAddress;
-    const ownerAddress = (Array.isArray(rawOwner) ? rawOwner[0] : rawOwner ?? '').trim();
-    if (!ownerAddress) return res.status(400).json({ error: 'Owner address required' });
-
-    const resolution = q(req, 'resolution') || '7d';
-    const mintAddress = q(req, 'mintAddress').trim();
-    const sortByAsc = q(req, 'sortByAsc').trim();
-    const sortByDesc = q(req, 'sortByDesc').trim() || 'realizedPnlUsd';
-    const page = qNum(req, 'page');
-    const limit = Math.min(qNum(req, 'limit') ?? 1000, 1000);
-    const data = await getWalletPnl(dataHttp, ownerAddress, {
-      resolution,
-      ...(mintAddress ? { mintAddress } : {}),
-      ...(sortByAsc ? { sortByAsc } : { sortByDesc }),
-      ...(page != null ? { page } : {}),
-      limit,
-    });
-    res.json(data);
-  } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
-    res.status(status).json({ error: toHumanReadableError(err) });
+    res.status(502).json({ error: toHumanReadableError(err) });
   }
 });
 
@@ -227,9 +148,13 @@ app.use(
 );
 
 async function main(): Promise<void> {
+  if (!ASSETS_API_BASE) {
+    throw new Error('ASSETS_API_BASE is required (set it in .env).');
+  }
   app.listen(port, () => {
     console.log(
-      `[wallet-balances-api] listening on http://localhost:${port} (Vybe data: ${VYBE_DATA_API_BASE}, RPC: ${getSolanaRpcProviderLabel()})`,
+      `[wallet-balances-api] debug listening on http://localhost:${port} ` +
+        `(assets: ${ASSETS_API_BASE}/api/assets/:wallet, enrich=off)`,
     );
   });
 }

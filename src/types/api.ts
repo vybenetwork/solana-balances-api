@@ -48,3 +48,28 @@ export interface VybeWalletTokenBalanceResponse {
   totalTokenValueUsd: string;
   [key: string]: unknown;
 }
+
+/** Holding row from GET /api/v1/owners/:owner/portfolio */
+export interface OwnerPortfolioHolding {
+  /** Raw on-chain amount (base units). Preserved as string for large integers. */
+  amount: string;
+  mint: string;
+  label?: string;
+}
+
+export interface OwnerPortfolioSolSummary {
+  native_sol: number;
+  staked_sol: number;
+  total_sol_lamports: number;
+  wrapped_sol: number;
+}
+
+/** Response from GET /api/v1/owners/:owner/portfolio */
+export interface OwnerPortfolioResponse {
+  owner: string;
+  holdings: OwnerPortfolioHolding[];
+  sol_summary: OwnerPortfolioSolSummary;
+  token_count: number;
+  query_time_us: number;
+  [key: string]: unknown;
+}

@@ -256,8 +256,8 @@ function iconFetchUrls(remoteUrl: string): string[] {
   if (cidMatch?.[1]) {
     const cid = cidMatch[1];
     for (const gateway of [
-      `https://cloudflare-ipfs.com/ipfs/${cid}`,
       `https://gateway.pinata.cloud/ipfs/${cid}`,
+      `https://ipfs.filebase.io/ipfs/${cid}`,
       `https://dweb.link/ipfs/${cid}`,
     ]) {
       if (!urls.includes(gateway)) urls.push(gateway);

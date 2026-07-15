@@ -12,6 +12,7 @@
     '/data/token-icons/',
     '/cached/protocol-icons/',
     '/data/protocol-icons/',
+    '/api/proxy-logo?',
   ];
 
   /** @type {Record<string, { symbol?: string, name?: string, logoUrl?: string, updatedAt?: number }> | null} */
@@ -35,6 +36,9 @@
     const u = clean(url);
     // Reject Array.prototype.toString leftovers like "/cached/…png,"
     if (!u || u.includes(',')) return '';
+    // Keep remote http(s) logos on this branch. Previously hydrateToken wiped
+    // these to '' because only /cached paths were allowed.
+    if (u.startsWith('https://') || u.startsWith('http://')) return u;
     if (!LOCAL_LOGO_PREFIXES.some((p) => u.startsWith(p))) return '';
     return u;
   }

@@ -34,6 +34,14 @@ export const VYBE_DATA_API_BASE = (
   .trim()
   .replace(/\/$/, '');
 
+/** Assets API base for GET /api/assets/:wallet — set ASSETS_API_BASE in .env. */
+export const ASSETS_API_BASE = (process.env.ASSETS_API_BASE ?? '').trim().replace(/\/$/, '');
+
+/** Optional portfolio dump API base — set PORTFOLIO_API_BASE in .env when needed. */
+export const PORTFOLIO_API_BASE = (process.env.PORTFOLIO_API_BASE ?? '')
+  .trim()
+  .replace(/\/$/, '');
+
 export const VYBE_TIMEOUT_MS = 60_000;
 export const VYBE_MAX_RETRIES = 3;
 export const VYBE_RETRY_DELAY_MS = 2000;

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "dump:vybe-wallet": "tsx tools/dump-vybe-wallet-token-balance.ts",
+    "dump:owner-portfolio": "tsx tools/dump-owner-portfolio.ts",
     "deploy:vm": "bash scripts/deploy-to-vm.sh",
     "redeploy:vm": "bash scripts/redeploy-vm.sh"
   },

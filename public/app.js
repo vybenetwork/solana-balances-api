@@ -81,8 +81,8 @@ const TOKEN_LOGO_PLACEHOLDER = '/token-placeholder.png';
 const LOGO_SETTINGS_DEFAULTS = {
   topLogoRepairN: { min: 1, max: 20, fallback: 10 },
 };
-/** Fixed client img load timeout (local /cached icons only; no UI control). */
-const LOGO_IMG_TIMEOUT_MS = 10_000;
+/** Client img load timeout — longer for same-origin proxy (IPFS gateway fetches). */
+const LOGO_IMG_TIMEOUT_MS = 30_000;
 /** Match server: force-off Stream Logo Enrich for huge / mostly-dead wallets. */
 const ENRICH_FORCE_DISABLE_TOKEN_COUNT = 100;
 const ENRICH_FORCE_DISABLE_DEAD_COUNT = 50;
@@ -118,11 +118,9 @@ function tokenHasSuspiciousUnitAmount(token) {
   return Number.isFinite(n) && n >= 1 && n < 2;
 }
 
-function shouldMaskSuspiciousValueUsd(token) {
-  if (token?.skipLogoEnrich !== true) return false;
-  if (tokenHasMissingOrZeroPrice(token)) return true;
-  if (tokenHasSuspiciousUnitAmount(token)) return true;
-  return toNum(token.valueUsd) > SUSPICIOUS_MASK_VALUE_USD_MIN;
+function shouldMaskSuspiciousValueUsd(_token) {
+  // TEMP (debug branch): disable suspicious price/value masking entirely.
+  return false;
 }
 
 function effectiveValueUsd(token) {
@@ -132,16 +130,8 @@ function effectiveValueUsd(token) {
 }
 
 function applySuspiciousValueUsdMask(tokens) {
-  for (const token of tokens) {
-    if (!shouldMaskSuspiciousValueUsd(token)) continue;
-    token.valueUsd = 0;
-    delete token.priceUsd;
-    delete token.price1d;
-    delete token.price7d;
-    delete token.priceChange1dPct;
-    delete token.priceChange7dPct;
-    delete token.priceSource;
-  }
+  // TEMP (debug branch): no-op — keep assets API prices/values as returned.
+  void tokens;
 }
 
 function getTokenLogoScrollRoot() {
@@ -864,7 +854,11 @@ function isLocalCachedLogoUrl(url) {
   if (Array.isArray(url)) return false;
   const u = String(url || '').trim();
   if (!u || u.includes(',')) return false;
-  return u.startsWith('/cached/token-icons/') || u.startsWith('/data/token-icons/');
+  return (
+    u.startsWith('/cached/token-icons/') ||
+    u.startsWith('/data/token-icons/') ||
+    u.startsWith('/api/proxy-logo?')
+  );
 }
 
 function iconUrl(item) {
@@ -873,8 +867,10 @@ function iconUrl(item) {
     ? window.VybeMintMetaCache?.normalizeLogoUrl?.(raw) || ''
     : String(raw || '').trim();
   if (!u) return '';
-  // Only render logos served by this app — never remote CDNs (shdw-drive, etc.).
-  return isLocalCachedLogoUrl(u) ? u : '';
+  // Local cache + same-origin proxy (ipfs.io 403s when loaded directly in the browser).
+  if (isLocalCachedLogoUrl(u)) return u;
+  if (u.startsWith('https://') || u.startsWith('http://')) return u;
+  return '';
 }
 
 function clearLogoLoadTimeout(mint) {
@@ -902,7 +898,10 @@ function resetVybeLogoLoadQueue() {
 function recordVybeOriginLogos(tokens) {
   vybeOriginLogoMints.clear();
   for (const t of tokens) {
-    if (t.logoUrl?.trim()) vybeOriginLogoMints.add(t.mintAddress);
+    const u = String(t.logoUrl || '').trim();
+    // Only stagger local /cached logos. Remote http(s) logos load immediately with
+    // referrerpolicy=no-referrer (CDN hotlink guards blank them otherwise).
+    if (u && isLocalCachedLogoUrl(u)) vybeOriginLogoMints.add(t.mintAddress);
   }
 }
 
@@ -972,7 +971,17 @@ function tokenSkipsLogoRepair(mint) {
 function handleLogoLoadTimeout(mint) {
   logoImgTimeouts.delete(mint);
   if (logoFailedMints.has(mint) || logoImageLoadedMints.has(mint)) return;
-  // Stream enrich already tried; don't fall back to blocking GET /api/token/:mint/logo.
+  const row = lastTokens.find((t) => t.mintAddress === mint);
+  const logo = String(row?.logoUrl || '').trim();
+  // Remote / proxy logos: do NOT permanent-fail on timeout.
+  // Our old path marked dozens failed while CDN/proxy requests were still in flight.
+  if (
+    logo.startsWith('http://') ||
+    logo.startsWith('https://') ||
+    logo.startsWith('/api/proxy-logo?')
+  ) {
+    return;
+  }
   failTokenLogo(mint);
 }
 
@@ -988,11 +997,25 @@ function handleTokenIconLoad(mint, imgEl) {
 function handleTokenIconError(mint, imgEl) {
   clearLogoLoadTimeout(mint);
   logoImageLoadedMints.delete(mint);
+  const row = lastTokens.find((t) => t.mintAddress === mint);
+  const logo = String(row?.logoUrl || '').trim();
+  const remote =
+    logo.startsWith('http://') ||
+    logo.startsWith('https://') ||
+    logo.startsWith('/api/proxy-logo?');
+  if (remote) {
+    // Don't permanent-fail / re-render the whole table on one bad CDN.
+    if (imgEl?.parentElement) {
+      imgEl.parentElement.innerHTML = tokenLogoPlaceholderHtml();
+    } else if (imgEl) {
+      imgEl.remove();
+    }
+    return;
+  }
   if (imgEl) {
     imgEl.classList.add('token-logo--img-loading');
     imgEl.style.opacity = '0';
   }
-  // Missing/broken local icon → placeholder. No per-mint /logo repair.
   failTokenLogo(mint);
 }
 
@@ -1028,6 +1051,16 @@ function tokenIconHtml(t) {
   }
 
   const loaded = logoImageLoadedMints.has(mint);
+  // Plain <img src> for remote/proxy logos — no opacity:0 / timeout kill loop.
+  const directSrc =
+    icon.startsWith('/api/proxy-logo?') ||
+    icon.startsWith('https://') ||
+    icon.startsWith('http://');
+  if (directSrc) {
+    if (!logoSrcAssignedMints.has(mint)) logoSrcAssignedMints.add(mint);
+    return `<span class="token-logo-slot"><img class="token-logo" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}" src="${escapeHtmlAttr(icon)}" referrerpolicy="no-referrer" alt="" loading="lazy" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)"></span>`;
+  }
+
   const inFlight = logoSrcAssignedMints.has(mint) && !loaded && !logoFailedMints.has(mint);
   const vybeLogo = vybeOriginLogoMints.has(mint) ? ' data-vybe-logo="1"' : '';
   let inner = '';
@@ -1907,7 +1940,8 @@ async function fetchBalances() {
       lastTokens[idx] = token;
     } else lastTokens.push(token);
     lastTokens = [...lastTokens].sort(compareHoldersTableRows);
-    if (isLocalCachedLogoUrl(token.logoUrl)) {
+    const logo = String(token.logoUrl || '').trim();
+    if (isLocalCachedLogoUrl(logo) || logo.startsWith('https://') || logo.startsWith('http://')) {
       logoFailedMints.delete(token.mintAddress);
       logoSrcAssignedMints.add(token.mintAddress);
       logoPendingRepairMints.delete(token.mintAddress);
