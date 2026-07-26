@@ -23,11 +23,11 @@ const TIER_LEGEND_SVG_VOLUME =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h4v8H3v-8zm7-4h4v12h-4V8zm7 6h4v6h-4v-6z"/></svg>';
 const SOLSCAN_TOKEN = 'https://solscan.io/token/';
 const VYBE_PRICE_SOURCE_ICON =
-  '<img class="holders-price-source__icon holders-price-source__icon--vybe" src="/favicon.svg" alt="" width="14" height="14" decoding="async"/>';
+  '<img class="holders-price-source__icon holders-price-source__icon--vybe" src="/favicon.svg" alt="Vybe Network price source" width="14" height="14" decoding="async"/>';
 const JUPITER_PRICE_SOURCE_ICON =
-  '<img class="holders-price-source__icon holders-price-source__icon--jupiter" src="/images/jupiter-logo.png" alt="" width="14" height="14" decoding="async"/>';
+  '<img class="holders-price-source__icon holders-price-source__icon--jupiter" src="/images/jupiter-logo.png" alt="Jupiter price source" width="14" height="14" decoding="async"/>';
 const PUMPFUN_PRICE_SOURCE_ICON =
-  '<img class="holders-price-source__icon holders-price-source__icon--pump" src="/images/pump-logo.png" alt="" width="14" height="14" decoding="async"/>';
+  '<img class="holders-price-source__icon holders-price-source__icon--pump" src="/images/pump-logo.png" alt="Pump.fun price source" width="14" height="14" decoding="async"/>';
 const HOLDERS_EXTERNAL_LINK_SVG =
   '<svg class="holders-mint-link__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>';
 
@@ -997,7 +997,7 @@ function handleTokenIconError(mint, imgEl) {
 }
 
 function tokenLogoPlaceholderHtml() {
-  return `<img class="token-logo token-logo--placeholder" src="${TOKEN_LOGO_PLACEHOLDER}" alt="" aria-hidden="true">`;
+  return `<img class="token-logo token-logo--placeholder" src="${TOKEN_LOGO_PLACEHOLDER}" alt="Token logo placeholder" aria-hidden="true">`;
 }
 
 function tokenLogoEmptySlotHtml() {
@@ -1013,6 +1013,7 @@ function tokenLogoRepairPending(mint) {
 function tokenIconHtml(t) {
   const mint = t.mintAddress;
   const icon = iconUrl(t);
+  const logoAlt = escapeHtmlAttr(`${displayTokenSymbol(t.symbol) || t.symbol || 'Token'} logo`);
   // After a 404/timeout, keep the placeholder until a stream update brings a fresh local URL.
   if (logoFailedMints.has(mint)) {
     return `<span class="token-logo-slot">${tokenLogoPlaceholderHtml()}</span>`;
@@ -1032,10 +1033,10 @@ function tokenIconHtml(t) {
   const vybeLogo = vybeOriginLogoMints.has(mint) ? ' data-vybe-logo="1"' : '';
   let inner = '';
   if (loaded || inFlight) {
-    inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} src="${escapeHtmlAttr(icon)}" alt="" style="${loaded ? 'opacity:1' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
+    inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} src="${escapeHtmlAttr(icon)}" alt="${logoAlt}" style="${loaded ? 'opacity:1' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
     if (inFlight && !loaded) armLogoLoadTimeout(mint);
   } else {
-    inner += `<img class="token-logo token-logo--img-loading" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} alt="" style="opacity:0" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
+    inner += `<img class="token-logo token-logo--img-loading" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} alt="${logoAlt}" style="opacity:0" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
   }
   const slotClass = loaded ? 'token-logo-slot' : 'token-logo-slot token-logo-slot--pending';
   return `<span class="${slotClass}">${inner}</span>`;
