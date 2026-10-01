@@ -940,6 +940,24 @@ function pumpVybeLogoLoadQueue() {
   setTimeout(pumpVybeLogoLoadQueue, VYBE_LOGO_LOAD_STAGGER_MS);
 }
 
+/** Swap one logo cell to the placeholder — never rebuild the whole table. */
+function replaceTokenLogoSlotWithPlaceholder(mint) {
+  if (!holdersBody || !mint) return;
+  const imgs = holdersBody.querySelectorAll(
+    `img.token-logo[data-logo-mint="${CSS.escape(mint)}"]`,
+  );
+  for (const img of imgs) {
+    img.onload = null;
+    img.onerror = null;
+    img.removeAttribute('onload');
+    img.removeAttribute('onerror');
+    const slot = img.closest('.token-logo-slot');
+    if (!slot) continue;
+    slot.className = 'token-logo-slot';
+    slot.innerHTML = tokenLogoPlaceholderHtml();
+  }
+}
+
 function failTokenLogo(mint) {
   clearLogoLoadTimeout(mint);
   const alreadyFailed = logoFailedMints.has(mint);
@@ -955,7 +973,9 @@ function failTokenLogo(mint) {
   }
   window.VybeMintMetaCache?.forgetLogo?.(mint);
 
-  if (!alreadyFailed) updateTableAfterLogoChange();
+  // In-place only: a full renderTable() here used to destroy other in-flight
+  // <img>s, which fired onerror → more failTokenLogo → OOM (~10s logo timeout).
+  if (!alreadyFailed) replaceTokenLogoSlotWithPlaceholder(mint);
 }
 
 function armLogoLoadTimeout(mint) {
@@ -977,15 +997,22 @@ function handleLogoLoadTimeout(mint) {
 }
 
 function handleTokenIconLoad(mint, imgEl) {
+  // Ignore load events from imgs torn down by a prior renderTable()/innerHTML wipe.
+  if (imgEl && !imgEl.isConnected) return;
   clearLogoLoadTimeout(mint);
   logoImageLoadedMints.add(mint);
   if (imgEl) {
     imgEl.classList.remove('token-logo--img-loading');
     imgEl.style.opacity = '1';
+    const slot = imgEl.closest('.token-logo-slot');
+    if (slot) slot.classList.remove('token-logo-slot--pending');
   }
 }
 
 function handleTokenIconError(mint, imgEl) {
+  // Chrome fires onerror when a loading <img> is removed from the DOM. Those
+  // must not mark the mint failed or trigger further table work.
+  if (imgEl && !imgEl.isConnected) return;
   clearLogoLoadTimeout(mint);
   logoImageLoadedMints.delete(mint);
   if (imgEl) {
@@ -1033,6 +1060,8 @@ function tokenIconHtml(t) {
   const vybeLogo = vybeOriginLogoMints.has(mint) ? ' data-vybe-logo="1"' : '';
   let inner = '';
   if (loaded || inFlight) {
+    // Timeouts are safe to re-arm here: logo fails update one cell in-place,
+    // so they no longer cascade into full-table rebuilds.
     inner += `<img class="token-logo${loaded ? '' : ' token-logo--img-loading'}" data-logo-mint="${mintAttr}" data-logo-url="${escapeHtmlAttr(icon)}"${vybeLogo} src="${escapeHtmlAttr(icon)}" alt="${logoAlt}" style="${loaded ? 'opacity:1' : 'opacity:0'}" onload="window.__walletBalancesIconLoad?.('${mintAttr}', this)" onerror="window.__walletBalancesIconError?.('${mintAttr}', this)">`;
     if (inFlight && !loaded) armLogoLoadTimeout(mint);
   } else {
@@ -1040,11 +1069,6 @@ function tokenIconHtml(t) {
   }
   const slotClass = loaded ? 'token-logo-slot' : 'token-logo-slot token-logo-slot--pending';
   return `<span class="${slotClass}">${inner}</span>`;
-}
-
-function updateTableAfterLogoChange() {
-  const totalUsd = lastTokens.reduce((s, row) => s + effectiveValueUsd(row), 0);
-  renderTable(lastTokens, totalUsd);
 }
 
 async function fetchRepairedLogo(_mint, _force) {
@@ -1803,6 +1827,16 @@ function renderHoldersTablePlaceholder() {
 function renderTable(tokens, totalUsd) {
   updateHoldersSummaryStrip(tokens);
   const sorted = [...tokens].sort(compareHoldersTableRows);
+  // Detach handlers before wiping rows so Chrome does not treat mid-load img
+  // removal as a real load failure (that used to cascade into OOM).
+  if (holdersBody) {
+    for (const img of holdersBody.querySelectorAll('img.token-logo')) {
+      img.onload = null;
+      img.onerror = null;
+      img.removeAttribute('onload');
+      img.removeAttribute('onerror');
+    }
+  }
   holdersBody.innerHTML = sorted
     .map((t, i) => {
       const v = effectiveValueUsd(t);
