@@ -1928,6 +1928,15 @@ async function fetchBalances() {
     }
   };
 
+  let streamUpdateRaf = 0;
+  const scheduleStreamUpdatePaint = () => {
+    if (streamUpdateRaf) return;
+    streamUpdateRaf = requestAnimationFrame(() => {
+      streamUpdateRaf = 0;
+      applyTokens(lastTokens, { repairLogos: false });
+    });
+  };
+
   const upsertToken = (token) => {
     if (!token?.mintAddress) return;
     applyClientMintMeta(token);
@@ -1948,8 +1957,9 @@ async function fetchBalances() {
       logoPendingRepairMints.delete(token.mintAddress);
       rememberClientMintMeta(token);
     }
-    applyTokens(lastTokens, { repairLogos: false });
-    // Stream updates carry materialized local logos; no client /logo repair.
+    // Coalesce stream enrich updates into one paint per frame — full table rebuild
+    // per logo was freezing the GUI after the initial holdings frame.
+    scheduleStreamUpdatePaint();
   };
 
   try {

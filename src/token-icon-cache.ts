@@ -56,6 +56,14 @@ export interface CachedTokenMeta {
   fetchedAt: string;
 }
 
+/** In-memory meta cache — avoid re-reading/parsing the JSON file per mint. */
+let metaCacheMemo: Record<string, CachedTokenMeta> | null = null;
+let metaCacheMtimeMs = -1;
+
+/** Mint → web path for icons already known to exist (avoids readdir × N tokens). */
+const iconWebPathByMint = new Map<string, string>();
+const ICON_EXTS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', ''] as const;
+
 function readJsonFile<T>(filePath: string, defaultVal: T): T {
   if (!fs.existsSync(filePath)) return defaultVal;
   try {
@@ -71,6 +79,19 @@ function writeJsonFile(filePath: string, data: object): void {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(data, null, 0), 'utf8');
+  if (filePath === META_CACHE_PATH) {
+    metaCacheMemo = data as Record<string, CachedTokenMeta>;
+    try {
+      metaCacheMtimeMs = fs.statSync(filePath).mtimeMs;
+    } catch {
+      metaCacheMtimeMs = Date.now();
+    }
+  }
+}
+
+function rememberIconWebPath(mint: string, webPath: string): void {
+  const m = mint.trim();
+  if (m && webPath) iconWebPathByMint.set(m, webPath);
 }
 
 function extFromUrl(url: string): string {
@@ -155,16 +176,30 @@ export function getCachedTokenIconWebPath(mint: string): string | undefined {
 export function removeTokenIconFiles(mint: string): void {
   const m = mint.trim();
   if (!m) return;
+  iconWebPathByMint.delete(m);
   for (const dir of [PUBLIC_ICON_DIR, RUNTIME_ICON_DIR]) {
     if (!fs.existsSync(dir)) continue;
-    for (const f of fs.readdirSync(dir)) {
-      if (f === m || f.startsWith(`${m}.`)) {
-        try {
-          fs.unlinkSync(path.join(dir, f));
-        } catch {
-          /* ignore */
+    for (const ext of ICON_EXTS) {
+      const filePath = path.join(dir, `${m}${ext}`);
+      try {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch {
+        /* ignore */
+      }
+    }
+    // Legacy filenames that don't match the probe list.
+    try {
+      for (const f of fs.readdirSync(dir)) {
+        if (f === m || f.startsWith(`${m}.`)) {
+          try {
+            fs.unlinkSync(path.join(dir, f));
+          } catch {
+            /* ignore */
+          }
         }
       }
+    } catch {
+      /* ignore */
     }
   }
 }
@@ -188,28 +223,72 @@ function removeInvalidIconFile(filePath: string): void {
   }
 }
 
+function probeIconFile(
+  dir: string,
+  prefix: string,
+  mint: string,
+): { webPath: string; filePath: string } | null {
+  if (!fs.existsSync(dir)) return null;
+  for (const ext of ICON_EXTS) {
+    const fileName = `${mint}${ext}`;
+    const filePath = path.join(dir, fileName);
+    try {
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) continue;
+    } catch {
+      continue;
+    }
+    // Existence is enough for hot-path lookups. Full magic-byte validation runs
+    // once at download time — re-reading every icon on every mint was O(n²) and
+    // blocked the event loop for tens of seconds before the initial NDJSON frame
+    // could flush to the client.
+    return { webPath: `${prefix}/${fileName}`, filePath };
+  }
+  return null;
+}
+
 function findExistingIcon(mint: string): { webPath: string; filePath: string } | null {
+  const m = mint.trim();
+  if (!m) return null;
+
+  const cached = iconWebPathByMint.get(m);
+  if (cached) {
+    const isRuntime = cached.startsWith(RUNTIME_ICON_WEB_PREFIX);
+    const dir = isRuntime ? RUNTIME_ICON_DIR : PUBLIC_ICON_DIR;
+    const fileName = cached.slice(cached.lastIndexOf('/') + 1);
+    const filePath = path.join(dir, fileName);
+    if (fs.existsSync(filePath)) return { webPath: cached, filePath };
+    iconWebPathByMint.delete(m);
+  }
+
   // Prefer /cached/… (dedicated long-cache mount) over /data/… under public/.
   for (const [dir, prefix] of [
     [RUNTIME_ICON_DIR, RUNTIME_ICON_WEB_PREFIX],
     [PUBLIC_ICON_DIR, PUBLIC_ICON_WEB_PREFIX],
   ] as const) {
-    if (!fs.existsSync(dir)) continue;
-    const files = fs.readdirSync(dir);
-    const hit = files.find((f) => f === mint || f.startsWith(`${mint}.`));
+    const hit = probeIconFile(dir, prefix, m);
     if (!hit) continue;
-    const filePath = path.join(dir, hit);
-    if (!isValidIconFile(filePath)) {
-      removeInvalidIconFile(filePath);
-      continue;
-    }
-    return { webPath: `${prefix}/${hit}`, filePath };
+    rememberIconWebPath(m, hit.webPath);
+    return hit;
   }
   return null;
 }
 
 export function readTokenMetaCache(): Record<string, CachedTokenMeta> {
-  return readJsonFile<Record<string, CachedTokenMeta>>(META_CACHE_PATH, {});
+  try {
+    if (fs.existsSync(META_CACHE_PATH)) {
+      const mtimeMs = fs.statSync(META_CACHE_PATH).mtimeMs;
+      if (metaCacheMemo && metaCacheMtimeMs === mtimeMs) return metaCacheMemo;
+      const data = readJsonFile<Record<string, CachedTokenMeta>>(META_CACHE_PATH, {});
+      metaCacheMemo = data;
+      metaCacheMtimeMs = mtimeMs;
+      return data;
+    }
+  } catch {
+    /* fall through */
+  }
+  metaCacheMemo = {};
+  metaCacheMtimeMs = -1;
+  return metaCacheMemo;
 }
 
 export function writeTokenMetaCache(data: Record<string, CachedTokenMeta>): void {
@@ -314,7 +393,9 @@ async function downloadAndCacheIcon(
       const fileName = `${mint}${ext}`;
       const filePath = path.join(RUNTIME_ICON_DIR, fileName);
       fs.writeFileSync(filePath, buf);
-      return `${RUNTIME_ICON_WEB_PREFIX}/${fileName}`;
+      const webPath = `${RUNTIME_ICON_WEB_PREFIX}/${fileName}`;
+      rememberIconWebPath(mint, webPath);
+      return webPath;
     }
 
     const nestedImageUrl = imageUrlFromMetadataJson(buf);

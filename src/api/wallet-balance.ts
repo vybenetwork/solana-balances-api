@@ -896,26 +896,27 @@ export async function streamWalletTokenBalances(
 
   emit({ event: 'initial', tokens: maskSuspiciousWalletBalanceList(items) });
   // Yield so the initial NDJSON frame can flush before slow enrich / logo download.
+  // (Sync disk work after this used to block the event loop and delay first paint.)
   await new Promise<void>((resolve) => setImmediate(resolve));
 
   let working = items;
-  // After initial: download Vybe remote logos to disk for top N even when meta
-  // enrich is force-disabled (repair=Jupiter/pump only when enrich is on).
-  const logoLimit = Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX);
+  // Only materialize when enrich is active. Force-disabled wallets (huge / mostly
+  // dead) used to still download top-20 logos here, holding the stream open and —
+  // behind reverse proxies / a blocked event loop — delaying the initial table paint.
+  const logoLimit = enrichLimit > 0 ? Math.max(enrichLimit, TOP_LOGO_REPAIR_N_MAX) : 0;
   if (logoLimit > 0) {
     const logoStart = Date.now();
-    const allowRepair = enrichLimit > 0;
     working = await materializeItemLogosLocal(working, {
       limit: logoLimit,
       concurrency: 8,
-      allowRepair,
+      allowRepair: true,
       onResolved: async (item) => {
         if (isCancelled?.()) return;
         emit({ event: 'update', token: maskSuspiciousWalletBalanceItem(item) });
       },
     });
     console.info(
-      `[wallet-balance] ${label} logo-materialize done in ${Date.now() - logoStart}ms (cap ${logoLimit}, repair=${allowRepair})`,
+      `[wallet-balance] ${label} logo-materialize done in ${Date.now() - logoStart}ms (cap ${logoLimit}, repair=true)`,
     );
   }
 

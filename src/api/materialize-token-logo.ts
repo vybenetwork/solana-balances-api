@@ -144,14 +144,16 @@ export async function materializeItemLogosLocal<T extends LogoMaterializeItem>(
     if (item.skipLogoEnrich) {
       return { ...item, logoUrl: isLocalCachedIconUrl(item.logoUrl) ? item.logoUrl : null };
     }
-    if (hasCachedTokenIcon(item.mintAddress)) {
-      const local = getCachedTokenIconWebPath(item.mintAddress) ?? localByMint.get(item.mintAddress) ?? null;
-      return { ...item, logoUrl: local };
-    }
     if (localByMint.has(item.mintAddress)) {
       return { ...item, logoUrl: localByMint.get(item.mintAddress) ?? null };
     }
-    const logo = item.logoUrl?.trim() || null;
-    return { ...item, logoUrl: isLocalCachedIconUrl(logo) ? logo : null };
+    // Prefer already-local URLs / prior downloads without scanning the icon dir
+    // for every holding (that was O(tokens × icons) and blocked the event loop).
+    const existingLogo = item.logoUrl?.trim() || null;
+    if (isLocalCachedIconUrl(existingLogo)) return { ...item, logoUrl: existingLogo };
+    if (hasCachedTokenIcon(item.mintAddress)) {
+      return { ...item, logoUrl: getCachedTokenIconWebPath(item.mintAddress) ?? null };
+    }
+    return { ...item, logoUrl: null };
   });
 }
