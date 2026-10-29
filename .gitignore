@@ -8,3 +8,4 @@ data/token-icons/
 deploy/
 scripts/
 DEPLOY.md
+.env.backup*

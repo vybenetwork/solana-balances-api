@@ -12,6 +12,7 @@ import {
   PUBLIC_DIR,
   VYBE_DATA_API_BASE,
 } from './config.js';
+import { serveIndexWithGoogleTag } from './google-tag.js';
 import { createDataHttpClient, toHumanReadableError } from './api/client.js';
 import {
   listWalletTokenBalances,
@@ -46,6 +47,7 @@ function setStaticCacheHeaders(res: Response, filePath: string): void {
   res.setHeader('Pragma', 'no-cache');
 }
 
+app.use(serveIndexWithGoogleTag(PUBLIC_DIR));
 app.use(
   express.static(PUBLIC_DIR, {
     setHeaders: setStaticCacheHeaders,
