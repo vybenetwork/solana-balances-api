@@ -1,0 +1,16 @@
+# Solana Balances API
+
+> Solana balances API: fetch SPL & Token-2022 holdings with Vybe balances and metadata, and live USD portfolio values for any Solana wallet.
+
+Live demo of the Vybe Solana API. The linked docs pages are the Markdown versions.
+
+## Demo
+- [Solana Balances API](https://solana-balances-api.vybenetwork.com/): Solana balances API: fetch SPL & Token-2022 holdings with Vybe balances and metadata, and live USD portfolio values for any Solana wallet.
+
+## Docs
+- [Fetch Wallet Balances](https://docs.vybenetwork.com/docs/token-balances.md)
+- [Wallet Balances API](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4.md)
+- [Token Details API](https://docs.vybenetwork.com/reference/get_token_details_v4.md)
+- [Trader PnL API](https://docs.vybenetwork.com/reference/get_wallet_pnl_v4.md)
+- [Top Traders API](https://docs.vybenetwork.com/reference/get_top_traders_v4.md)
+- [DeFi Positions API](https://docs.vybenetwork.com/reference/get_defi_accounts_v4_proxy.md)
