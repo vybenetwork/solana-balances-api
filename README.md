@@ -65,7 +65,7 @@ Then open **http://localhost:3001**, paste a Solana wallet address, and load bal
 | `HTTP_PROXY_POOL_SIZE` | No | Rotating proxy slot count | `10` |
 | `HTTP_PROXY_WARMUP` | No | Warm Jupiter/pump.fun at startup | `true` |
 
-Get your API keys at `https://vybe.fyi/api-pricing?utm_source=balances-api-readme&utm_medium=referral`.
+Get your API keys at [`https://vybe.fyi/api-pricing`](https://vybe.fyi/api-pricing?utm_source=balances-api-readme&utm_medium=referral).
 
 ---
 
