@@ -21,7 +21,7 @@ Try the live demo: https://solana-balances-api.vybenetwork.com
 ---
 
 - **[Try the LIVE demo →](https://solana-balances-api.vybenetwork.com)**
-- **[Get your free Vybe API key →](https://vybe.fyi/api-pricing)**
+- **[Get your free Vybe API key →](https://vybe.fyi/api-pricing?utm_source=balances-api-readme&utm_medium=referral)**
 - **[Realtime wallet balances guide →](https://docs.vybenetwork.com/docs/token-balances)**
 - **[Wallet token balance endpoint →](https://docs.vybenetwork.com/reference/get_wallet_tokens_v4)**
 - **[Token details endpoint →](https://docs.vybenetwork.com/reference/get_token_details_v4)**
@@ -65,7 +65,7 @@ Then open **http://localhost:3001**, paste a Solana wallet address, and load bal
 | `HTTP_PROXY_POOL_SIZE` | No | Rotating proxy slot count | `10` |
 | `HTTP_PROXY_WARMUP` | No | Warm Jupiter/pump.fun at startup | `true` |
 
-Get your API keys at `https://vybe.fyi/api-pricing`.
+Get your API keys at `https://vybe.fyi/api-pricing?utm_source=balances-api-readme&utm_medium=referral`.
 
 ---
 
