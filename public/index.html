@@ -53,7 +53,56 @@
     <meta name="twitter:image" content="https://solana-balances-api.vybenetwork.com/solana-wallet-balances-api.jpg" />
     <meta name="twitter:image:alt" content="Solana Balances API app powered by Vybe API" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=134" />
+    <link rel="stylesheet" href="app.css?v=136" />
+      <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "Solana Balances API",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web",
+          "url": "https://solana-balances-api.vybenetwork.com/",
+          "description": "SPL and Token-2022 balances with USD value",
+          "provider": {
+            "@type": "Organization",
+            "name": "Vybe Network",
+            "url": "https://vybe.fyi/"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What does a wallet balance load?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "SPL and Token-2022 holdings with symbol, logo, and USD value."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I get a Vybe API key?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Generate a free API key on Vybe. A free key starts your first calls. Paid plans raise the rate limit."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What does the PnL view add?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "That wallet's profit and loss, plus one related top-trader row."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div class="container">
@@ -343,6 +392,66 @@
           </div>
         </nav>
       </header>
+
+      <section class="seo-answer" aria-labelledby="balancesAnswerTitle">
+        <p class="seo-answer__eyebrow"><span>Vybe</span><span class="seo-answer__pill">Wallet holdings</span></p>
+        <div class="seo-answer__top">
+          <div class="seo-answer__intro">
+            <h2 id="balancesAnswerTitle">SPL and Token-2022 balances with USD value</h2>
+            <p>Enter a wallet and this page lists its SPL and Token-2022 holdings, with symbol, logo, and USD value on each row.</p>
+            <p>Switch the table to PnL and it loads that wallet's profit and loss plus one related top-trader row. Per-token results stay on that same view, beside the closest trader match for the address you entered. A free API key on Vybe is enough to start. Paid plans raise the rate limit.</p>
+            <a class="page-masthead__btn page-masthead__btn--key" href="https://vybe.fyi/api-pricing?utm_source=wallet-balances&amp;utm_medium=referral">
+              <span class="page-masthead__btn-icon page-masthead__btn-icon--key" aria-hidden="true"></span>
+              Generate a free API key to get started
+            </a>
+          </div>
+          <aside class="seo-answer__endpoints" aria-label="Endpoints Used">
+            <h3><svg class="seo-answer__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg>Endpoints Used:</h3>
+            <ul>
+          <li><span>Wallet Balances API</span> <code>GET /v4/wallets/{ownerAddress}/token-balance</code></li>
+          <li><span>Token Details API</span> <code>GET /v4/tokens/{mintAddress}</code></li>
+          <li><span>Trader PnL API</span> <code>GET /v4/wallets/{ownerAddress}/pnl</code></li>
+          <li><span>Top Traders API</span> <code>GET /v4/wallets/top-traders</code></li>
+          <li><span>DeFi Positions API</span> <code>GET /v4/wallets/{ownerAddress}/defi-positions</code></li>
+            </ul>
+          </aside>
+        </div>
+        <ul class="seo-answer__cards">
+        <li class="seo-answer__card seo-answer__card--price">
+          <h3><svg class="seo-answer__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l5-5 3.5 3.5L20 7"/><path d="M14 7h6v6"/></svg>Holdings</h3>
+          <p>SPL and Token-2022 balances for the wallet, sorted by USD value.</p>
+        </li>
+        <li class="seo-answer__card seo-answer__card--candles">
+          <h3><svg class="seo-answer__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16"/><path d="M7 8h3v6H7z"/><path d="M17 4v16"/><path d="M14 11h3v5h-3z"/></svg>USD value</h3>
+          <p>Each row carries the holding's USD value from the balance response.</p>
+        </li>
+        <li class="seo-answer__card seo-answer__card--history">
+          <h3><svg class="seo-answer__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>Token metadata</h3>
+          <p>Symbol, name, and logo filled in for the mints in that wallet.</p>
+        </li>
+        <li class="seo-answer__card seo-answer__card--product">
+          <h3><svg class="seo-answer__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5"/><path d="M10 13h6"/><path d="M10 17h4"/></svg>PnL view</h3>
+          <p>Realized profit and loss for the wallet, plus a related trader row.</p>
+        </li>
+        </ul>
+        <div class="seo-answer__faq">
+          <p class="seo-answer__label">Also answered here</p>
+          <div class="seo-answer__faq-grid">
+          <article>
+            <h3>What does a wallet balance load?</h3>
+            <p>SPL and Token-2022 holdings with symbol, logo, and USD value.</p>
+          </article>
+          <article>
+            <h3>How do I get a Vybe API key?</h3>
+            <p><a href="https://vybe.fyi/api-pricing?utm_source=wallet-balances&amp;utm_medium=referral">Generate a free API key on Vybe</a>. A free key starts your first calls. Paid plans raise the rate limit.</p>
+          </article>
+          <article>
+            <h3>What does the PnL view add?</h3>
+            <p>That wallet's profit and loss, plus one related top-trader row.</p>
+          </article>
+          </div>
+        </div>
+      </section>
 
       <section class="section-card section-card--inputs inputs panel">
         <div class="section-heading">
