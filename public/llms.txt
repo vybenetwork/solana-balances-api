@@ -2,10 +2,27 @@
 
 > Solana balances API: fetch SPL & Token-2022 holdings with Vybe balances and metadata, and live USD portfolio values for any Solana wallet.
 
-Live demo of the Vybe Solana API. The linked docs pages are the Markdown versions.
+This is a free demo that showcases the Vybe balance endpoints. Open it in the browser to test and demo them. Nothing to install. The linked docs pages are the Markdown versions.
+
+## What this demo shows
+Enter a wallet and the page lists its SPL and Token-2022 holdings, with symbol, logo, and USD value on each row. Switch the table to PnL and it loads that wallet's profit and loss plus one related top-trader row.
+
+- Holdings: SPL and Token-2022 balances for the wallet, sorted by USD value.
+- USD value: each row carries the holding's USD value from the balance response.
+- Token metadata: symbol, name, and logo filled in for the mints in that wallet.
+- PnL view: realized profit and loss for the wallet, plus a related trader row.
+
+## Endpoints this demo calls
+- Wallet Balances API: `GET /v4/wallets/{ownerAddress}/token-balance`
+- Token Details API: `GET /v4/tokens/{mintAddress}`
+- Trader PnL API: `GET /v4/wallets/{ownerAddress}/pnl`
+- Top Traders API: `GET /v4/wallets/top-traders`
+- DeFi Positions API: `GET /v4/wallets/{ownerAddress}/defi-positions`
+
+The demo page is free to use. Wallet Balances is on the Free plan, the lowest tier. A free API key starts the first calls. Paid plans raise the rate limit.
 
 ## Demo
-- [Solana Balances API](https://solana-balances-api.vybenetwork.com/): Solana balances API: fetch SPL & Token-2022 holdings with Vybe balances and metadata, and live USD portfolio values for any Solana wallet.
+- [Solana Balances API](https://solana-balances-api.vybenetwork.com/): Free browser demo of the balance endpoints. Enter a wallet to test holdings and USD value.
 
 ## Docs
 - [Fetch Wallet Balances](https://docs.vybenetwork.com/docs/token-balances.md)
